@@ -412,6 +412,8 @@ export default function SajuApp() {
   const [loadingProgress, setLoadingProgress] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingProgress, setGeneratingProgress] = useState(0);
+  const [aiTextTranslated, setAiTextTranslated] = useState(false);
+  const [compatAiTranslated, setCompatAiTranslated] = useState(false);
 
   /* Loading screen state */
   const [loadingStep, setLoadingStep] = useState(0);
@@ -456,22 +458,37 @@ export default function SajuApp() {
     if (storageConsent) localStorage.setItem(key, value);
   }
 
-  async function shareResult(text: string, title: string) {
-    const shareData = {
-      title: title,
-      text: text.slice(0, 200) + '...',
-      url: window.location.href
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch {}
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href + '\n\n' + title);
-        alert(lang === 'en' ? 'Link copied!' : '링크가 복사되었어!');
-      } catch {}
+  async function shareResult(_text: string, title: string) {
+    try {
+      const el = document.querySelector('.app-container');
+      if (!el) return;
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(el as HTMLElement, {
+        backgroundColor: '#0A0E2A',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], 'saju-result.png', { type: 'image/png' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({ title, files: [file] });
+            return;
+          } catch {}
+        }
+        // Fallback: download image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'saju-result.png';
+        a.click();
+        URL.revokeObjectURL(url);
+        alert(lang === 'en' ? 'Image saved!' : '이미지가 저장되었어!');
+      }, 'image/png');
+    } catch {
+      alert(lang === 'en' ? 'Failed to capture image' : '이미지 캡처에 실패했어');
     }
   }
 
@@ -1181,11 +1198,17 @@ export default function SajuApp() {
     ohKeys.forEach(k => { total += ohCount[k]; });
     if (total === 0) total = 1;
 
+    const pillarDesc: Record<string, { ko: string; en: string }> = {
+      '시주': { ko: '자녀·말년운', en: 'Children·Later life' },
+      '일주': { ko: '나 자신·배우자', en: 'Self·Spouse' },
+      '월주': { ko: '부모·사회운', en: 'Parents·Social' },
+      '년주': { ko: '조상·초년운', en: 'Ancestors·Early life' },
+    };
     const pillars = [
-      { key: '시주', label: t('pillarHour', lang), stem: sj.hStem, branch: sj.hBranch },
-      { key: '일주', label: t('pillarDay', lang), stem: sj.dStem, branch: sj.dBranch },
-      { key: '월주', label: t('pillarMonth', lang), stem: sj.mStem, branch: sj.mBranch },
-      { key: '년주', label: t('pillarYear', lang), stem: sj.yStem, branch: sj.yBranch }
+      { key: '시주', label: t('pillarHour', lang), desc: pillarDesc['시주'][lang], stem: sj.hStem, branch: sj.hBranch },
+      { key: '일주', label: t('pillarDay', lang), desc: pillarDesc['일주'][lang], stem: sj.dStem, branch: sj.dBranch },
+      { key: '월주', label: t('pillarMonth', lang), desc: pillarDesc['월주'][lang], stem: sj.mStem, branch: sj.mBranch },
+      { key: '년주', label: t('pillarYear', lang), desc: pillarDesc['년주'][lang], stem: sj.yStem, branch: sj.yBranch }
     ];
 
     const sipsung = getSipsung(sj);
@@ -1235,6 +1258,7 @@ export default function SajuApp() {
               return (
               <div key={pi} className="pillar" style={isDay ? { border: '1.5px solid rgba(240,199,94,0.5)', borderRadius: '12px', background: 'rgba(240,199,94,0.06)', padding: '6px 2px' } : { border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '6px 2px' }}>
                 <div className="pillar-label" style={isDay ? { color: '#F0C75E', fontWeight: 700 } : undefined}>{pp.label}{isDay ? ' ★' : ''}</div>
+                <div style={{ fontSize: '9px', color: 'var(--text-dim)', marginBottom: '4px', lineHeight: 1.2 }}>{pp.desc}</div>
                 {pp.stem < 0 ? (
                   <>
                     <div className="stem" style={{ color: 'var(--text-dim)' }}>?</div>
@@ -1660,9 +1684,10 @@ export default function SajuApp() {
             <button className="btn" style={{ flex: 1, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--text)', fontSize: '13px' }}
               disabled={isTranslating}
               onClick={() => {
-                translateAiText(aiText, lang === 'ko' ? 'en' : 'ko', setAiText);
+                const targetLang = aiTextTranslated ? (lang === 'ko' ? 'ko' : 'en') : (lang === 'ko' ? 'en' : 'ko');
+                translateAiText(aiText, targetLang, (t) => { setAiText(t); setAiTextTranslated(!aiTextTranslated); });
               }}>
-              {isTranslating ? t('translating', lang) : (lang === 'ko' ? t('translateToEn', lang) : t('translateToKo', lang))}
+              {isTranslating ? t('translating', lang) : (aiTextTranslated ? (lang === 'ko' ? t('translateToKo', lang) : t('translateToEn', lang)) : (lang === 'ko' ? t('translateToEn', lang) : t('translateToKo', lang)))}
             </button>
           )}
           <button className="btn" style={{ flex: 1, background: 'rgba(255,255,255,0.08)', color: 'var(--text)', fontSize: '13px' }} onClick={() => { setCurrentScreen(0); setAiText(''); setSajuResult(null); }}>
@@ -2459,9 +2484,10 @@ export default function SajuApp() {
                 <button className="btn" style={{ width: '100%', marginTop: '8px', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--text)', fontSize: '13px', padding: '10px' }}
                   disabled={isTranslating}
                   onClick={() => {
-                    translateAiText(compatAiText, lang === 'ko' ? 'en' : 'ko', setCompatAiText);
+                    const targetLang = compatAiTranslated ? (lang === 'ko' ? 'ko' : 'en') : (lang === 'ko' ? 'en' : 'ko');
+                    translateAiText(compatAiText, targetLang, (t) => { setCompatAiText(t); setCompatAiTranslated(!compatAiTranslated); });
                   }}>
-                  {isTranslating ? t('translating', lang) : (lang === 'ko' ? t('translateToEn', lang) : t('translateToKo', lang))}
+                  {isTranslating ? t('translating', lang) : (compatAiTranslated ? (lang === 'ko' ? t('translateToKo', lang) : t('translateToEn', lang)) : (lang === 'ko' ? t('translateToEn', lang) : t('translateToKo', lang)))}
                 </button>
               </div>
             )}
@@ -2890,9 +2916,10 @@ export default function SajuApp() {
             <button className="btn" style={{ flex: 1, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--text)', fontSize: '13px' }}
               disabled={isTranslating}
               onClick={() => {
-                translateAiText(aiText, lang === 'ko' ? 'en' : 'ko', setAiText);
+                const targetLang = aiTextTranslated ? (lang === 'ko' ? 'ko' : 'en') : (lang === 'ko' ? 'en' : 'ko');
+                translateAiText(aiText, targetLang, (t) => { setAiText(t); setAiTextTranslated(!aiTextTranslated); });
               }}>
-              {isTranslating ? t('translating', lang) : (lang === 'ko' ? t('translateToEn', lang) : t('translateToKo', lang))}
+              {isTranslating ? t('translating', lang) : (aiTextTranslated ? (lang === 'ko' ? t('translateToKo', lang) : t('translateToEn', lang)) : (lang === 'ko' ? t('translateToEn', lang) : t('translateToKo', lang)))}
             </button>
           )}
           <button className="btn" style={{ flex: 1, background: 'rgba(255,255,255,0.08)', color: 'var(--text)', fontSize: '13px' }} onClick={() => { setCurrentScreen(0); setAiText(''); setSajuResult(null); }}>
