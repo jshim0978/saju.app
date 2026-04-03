@@ -458,37 +458,39 @@ export default function SajuApp() {
     if (storageConsent) localStorage.setItem(key, value);
   }
 
+  const [isCapturing, setIsCapturing] = useState(false);
+
   async function shareResult(_text: string, title: string) {
+    if (isCapturing) return;
+    setIsCapturing(true);
     try {
-      const el = document.querySelector('.app-container');
-      if (!el) return;
+      const el = (document.querySelector('.inner.screen-enter') || document.querySelector('.app-container')) as HTMLElement;
+      if (!el) { setIsCapturing(false); return; }
+      // Hide fixed UI elements during capture
+      const fixedEls = document.querySelectorAll('.back-btn, [style*="position:fixed"], [style*="position: fixed"]');
+      const origDisplay: string[] = [];
+      fixedEls.forEach((fe, i) => { origDisplay[i] = (fe as HTMLElement).style.display; (fe as HTMLElement).style.display = 'none'; });
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(el as HTMLElement, {
-        backgroundColor: '#0A0E2A',
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      const canvas = await html2canvas(el, {
+        backgroundColor: '#0A0E2A', scale: 1.5, useCORS: true, logging: false,
+        scrollY: -window.scrollY, windowHeight: el.scrollHeight, height: el.scrollHeight,
       });
+      fixedEls.forEach((fe, i) => { (fe as HTMLElement).style.display = origDisplay[i]; });
       canvas.toBlob(async (blob) => {
-        if (!blob) return;
+        if (!blob) { setIsCapturing(false); return; }
         const file = new File([blob], 'saju-result.png', { type: 'image/png' });
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          try {
-            await navigator.share({ title, files: [file] });
-            return;
-          } catch {}
+          try { await navigator.share({ title, files: [file] }); setIsCapturing(false); return; } catch {}
         }
-        // Fallback: download image
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'saju-result.png';
-        a.click();
+        const a = document.createElement('a'); a.href = url; a.download = 'saju-result.png'; a.click();
         URL.revokeObjectURL(url);
         alert(lang === 'en' ? 'Image saved!' : '이미지가 저장되었어!');
+        setIsCapturing(false);
       }, 'image/png');
     } catch {
       alert(lang === 'en' ? 'Failed to capture image' : '이미지 캡처에 실패했어');
+      setIsCapturing(false);
     }
   }
 
@@ -1665,8 +1667,9 @@ export default function SajuApp() {
         <div style={{ display: 'flex', gap: '10px', marginTop: '24px', flexWrap: 'wrap' }}>
           {aiText && !isGenerating && (
             <button className="btn" style={{ flex: 1, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: 'var(--text)', fontSize: '13px' }}
+              disabled={isCapturing}
               onClick={() => shareResult(aiText, (userData.name || '') + (lang === 'en' ? "'s Saju Reading" : '의 사주 해설'))}>
-              {lang === 'en' ? '🔗 Share' : '🔗 공유'}
+              {isCapturing ? (lang === 'en' ? '📸 Capturing...' : '📸 캡처 중...') : (lang === 'en' ? '📸 Share Image' : '📸 이미지 공유')}
             </button>
           )}
           {aiText && !isGenerating && (
@@ -2469,8 +2472,9 @@ export default function SajuApp() {
                 <h3>{t('aiCompatTitle', lang)}</h3>
                 <div className="llm-text" dangerouslySetInnerHTML={{ __html: formatLLMText(compatAiText, lang) }} />
                 <button className="btn" style={{ width: '100%', marginTop: '16px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: 'var(--text)', fontSize: '13px', padding: '10px' }}
+                  disabled={isCapturing}
                   onClick={() => shareResult(compatAiText, (userData.name || '') + ' & ' + (compatPerson2.name || '') + (lang === 'en' ? "'s Compatibility" : '의 궁합'))}>
-                  {lang === 'en' ? '🔗 Share' : '🔗 공유'}
+                  {isCapturing ? (lang === 'en' ? '📸 Capturing...' : '📸 캡처 중...') : (lang === 'en' ? '📸 Share Image' : '📸 이미지 공유')}
                 </button>
                 <button className="btn" style={{ width: '100%', marginTop: '8px', background: 'rgba(159,122,234,0.15)', border: '1px solid rgba(159,122,234,0.3)', color: 'var(--text)', fontSize: '13px', padding: '10px' }} onClick={() => {
                   try {
@@ -2897,8 +2901,9 @@ export default function SajuApp() {
         <div style={{ display: 'flex', gap: '10px', marginTop: '24px', flexWrap: 'wrap' }}>
           {aiText && !isGenerating && (
             <button className="btn" style={{ flex: 1, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: 'var(--text)', fontSize: '13px' }}
+              disabled={isCapturing}
               onClick={() => shareResult(aiText, (userData.name || '') + (lang === 'en' ? "'s Saju Reading" : '의 사주 해설'))}>
-              {lang === 'en' ? '🔗 Share' : '🔗 공유'}
+              {isCapturing ? (lang === 'en' ? '📸 Capturing...' : '📸 캡처 중...') : (lang === 'en' ? '📸 Share Image' : '📸 이미지 공유')}
             </button>
           )}
           {aiText && !isGenerating && (
