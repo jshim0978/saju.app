@@ -738,7 +738,7 @@ export default function SajuApp() {
       const res = await fetch('/api/saju', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, maxTokens: 6000, lang })
+        body: JSON.stringify({ prompt, maxTokens: 4096, lang })
       });
       if (!res.ok) throw new Error('API error: ' + res.status);
       if (!res.body) throw new Error('No response body');
