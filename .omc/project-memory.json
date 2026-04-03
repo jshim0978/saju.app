@@ -135,16 +135,16 @@
       "type": "file"
     },
     {
+      "path": "src\\app\\api\\saju\\route.ts",
+      "accessCount": 28,
+      "lastAccessed": 1775232547734,
+      "type": "file"
+    },
+    {
       "path": "src\\lib\\saju-calc.ts",
       "accessCount": 27,
       "lastAccessed": 1774266089600,
       "type": "directory"
-    },
-    {
-      "path": "src\\app\\api\\saju\\route.ts",
-      "accessCount": 26,
-      "lastAccessed": 1775232364003,
-      "type": "file"
     },
     {
       "path": "src\\app\\globals.css",

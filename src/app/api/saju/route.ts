@@ -6,7 +6,7 @@ const SYSTEM_EN = 'You are a world-class Saju (Korean Four Pillars astrology) ma
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = (process.env.OPENAI_API_KEY || '').trim();
     if (!apiKey) {
       return new Response('API key not configured. Set OPENAI_API_KEY in Vercel.', { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (errMsg.includes('insufficient_quota')) {
       return new Response('ERROR: Insufficient OpenAI credits', { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
-    return new Response('ERROR: ' + errMsg.slice(0, 200), {
+    return new Response('AI 서비스 연결에 실패했어. 잠시 후 다시 시도해줘! (' + errMsg.slice(0, 100) + ')', {
       status: 500,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' }
     });
