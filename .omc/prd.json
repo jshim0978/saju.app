@@ -1,0 +1,9 @@
+{
+  "title": "TDD - Comprehensive Test Suite for Saju App",
+  "stories": [
+    { "id": "US-001", "title": "saju-calc.ts unit tests", "priority": 1, "passes": true },
+    { "id": "US-002", "title": "lunar-solar, i18n, ref-selector tests", "priority": 2, "passes": true },
+    { "id": "US-003", "title": "saju-prompt-builder tests", "priority": 3, "passes": true },
+    { "id": "US-004", "title": "Sanity checks + build", "priority": 4, "passes": true }
+  ]
+}

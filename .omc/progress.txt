@@ -1,0 +1,14 @@
+=== Ralph TDD Progress Log ===
+Task: Comprehensive TDD test suite for saju-app
+Started: 2026-03-23
+
+## Iteration 1
+- PRD created with 4 stories
+- Installing vitest + testing-library
+- Test files to create:
+  - src/lib/__tests__/saju-calc.test.ts
+  - src/lib/__tests__/lunar-solar.test.ts
+  - src/lib/__tests__/i18n.test.ts
+  - src/lib/__tests__/saju-ref-selector.test.ts
+  - src/lib/__tests__/saju-prompt-builder.test.ts
+  - src/__tests__/sanity.test.ts

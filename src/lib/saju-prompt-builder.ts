@@ -1,0 +1,243 @@
+import { SajuResult, CG, JJ, OH_CG, OH_JJ, getSipsung, calcShinsal, get12Unsung } from './saju-calc';
+import { getRelevantRefs } from './saju-ref-selector';
+import type { UserData } from './saju-prompt';
+import type { Lang } from './i18n';
+
+export function buildSajuPrompts(sj: SajuResult, ohCount: Record<string, number>, userData: UserData): string[] {
+  const ds = sj.dStem;
+  const ohKeys = ['목','화','토','금','수'];
+  let ohDist = '';
+  for (let i = 0; i < ohKeys.length; i++) {
+    ohDist += ohKeys[i] + ':' + (ohCount[ohKeys[i]] || 0) + '개 ';
+  }
+
+  const elemNames: Record<number, string> = {
+    0:'갑목(큰나무)',1:'을목(꽃풀)',2:'병화(태양)',3:'정화(촛불)',4:'무토(산)',
+    5:'기토(들판)',6:'경금(강철)',7:'신금(보석)',8:'임수(바다)',9:'계수(비이슬)'
+  };
+
+  const sipsung = getSipsung(sj);
+  let sipsungStr = '';
+  for (const key in sipsung) { sipsungStr += key + ':' + sipsung[key] + ' '; }
+
+  const shinsal = calcShinsal(sj);
+  const shinsalStr = shinsal.length > 0 ? shinsal.join(', ') : '없음';
+
+  const chungPairs: number[][] = [[0,6],[1,7],[2,8],[3,9],[4,10],[5,11]];
+  const chungList: string[] = [];
+  const allBranches = [sj.yBranch, sj.mBranch, sj.dBranch];
+  if (sj.hBranch >= 0) allBranches.push(sj.hBranch);
+  for (let ci = 0; ci < allBranches.length; ci++) {
+    for (let cj = ci + 1; cj < allBranches.length; cj++) {
+      for (let ck = 0; ck < chungPairs.length; ck++) {
+        if ((allBranches[ci] === chungPairs[ck][0] && allBranches[cj] === chungPairs[ck][1]) ||
+            (allBranches[ci] === chungPairs[ck][1] && allBranches[cj] === chungPairs[ck][0])) {
+          chungList.push(JJ[allBranches[ci]] + '-' + JJ[allBranches[cj]] + ' 충');
+        }
+      }
+    }
+  }
+
+  const cTexts = ['연애/관계','커리어/진로','돈/재정','인간관계','건강','학업/시험'];
+  const sTexts = ['안정적이고 평화로움','변화의 흐름 속','스트레스 많음','도전적인 시기','잘 모르겠음'];
+  const rTexts = ['솔로','썸 타는 중','연애 중','기혼','최근 이별'];
+  const iTexts = ['올해 전체 운세','연애운/궁합','재물운','직장/사업운','중요 결정 타이밍'];
+  const pPairs = [['내향적','외향적'],['감성적','이성적'],['계획적','즉흥적']];
+
+  const concernText = cTexts[userData.concern] || '미입력';
+  const stateText = sTexts[userData.state] || '미입력';
+  const relText = rTexts[userData.relationship] || '미입력';
+  const interestText = iTexts[userData.wantToKnow] || '미입력';
+  let persText = '';
+  if (userData.personality && userData.personality.length >= 3) {
+    persText = pPairs[0][userData.personality[0]] + ', ' + pPairs[1][userData.personality[1]] + ', ' + pPairs[2][userData.personality[2]];
+  }
+
+  let prompt = '=== 사주 원국 ===\n';
+  prompt += '이름: ' + userData.name + ' / 성별: ' + userData.gender + '\n';
+  prompt += '생년월일: ' + userData.year + '년 ' + userData.month + '월 ' + userData.day + '일 (' + (userData.isLunar ? '음력 입력 -> 양력 변환됨' : '양력') + ')\n';
+  if (userData.useExactTime && userData.exactHour != null && userData.exactHour >= 0) {
+    const SIJU_NAMES = ['자시', '축시', '인시', '묘시', '진시', '사시', '오시', '미시', '신시', '유시', '술시', '해시'];
+    prompt += '정확한 출생시간: ' + String(userData.exactHour).padStart(2, '0') + '시 ' + String(userData.exactMinute ?? 0).padStart(2, '0') + '분 (' + (userData.hour >= 0 ? SIJU_NAMES[userData.hour] : '미상') + ' 해당)\n';
+  }
+  prompt += '년주: ' + CG[sj.yStem] + JJ[sj.yBranch] + '(' + OH_CG[sj.yStem] + '/' + OH_JJ[sj.yBranch] + ')\n';
+  prompt += '월주: ' + CG[sj.mStem] + JJ[sj.mBranch] + '(' + OH_CG[sj.mStem] + '/' + OH_JJ[sj.mBranch] + ')\n';
+  prompt += '일주: ' + CG[sj.dStem] + JJ[sj.dBranch] + '(' + OH_CG[sj.dStem] + '/' + OH_JJ[sj.dBranch] + ') ★일간\n';
+  if (sj.hStem >= 0) prompt += '시주: ' + CG[sj.hStem] + JJ[sj.hBranch] + '(' + OH_CG[sj.hStem] + '/' + OH_JJ[sj.hBranch] + ')\n';
+  prompt += '일간: ' + (elemNames[ds] || CG[ds]) + '\n';
+  prompt += '오행분포: ' + ohDist + '\n';
+  prompt += '십성: ' + sipsungStr + '\n';
+  const unsung = get12Unsung(sj);
+  let unsungStr = '년지:' + unsung['년지'] + ' 월지:' + unsung['월지'] + ' 일지:' + unsung['일지'];
+  if (unsung['시지']) unsungStr += ' 시지:' + unsung['시지'];
+  prompt += '십이운성: ' + unsungStr + '\n';
+  prompt += '신살: ' + shinsalStr + '\n';
+  if (chungList.length > 0) prompt += '충: ' + chungList.join(', ') + '\n';
+  prompt += '\n이 사주의 신강/신약 판단: 일간 ' + CG[ds] + '가 월령에서 득령/실령 여부, 통근 여부를 분석해서 신강인지 신약인지 먼저 판단한 뒤 용신(억부/조후)을 정해.\n';
+
+  prompt += '\n=== 사용자가 답한 5가지 질문 (각각에 대해 사주 기반 해설을 반드시 제공!) ===\n\n';
+  prompt += '① 가장 큰 고민: ' + concernText + '\n';
+  prompt += '→ 이 고민이 사주적으로 왜 생기는지 오행/십성 근거로 설명하고, 해결의 실마리를 제시해줘.\n';
+  prompt += '  예: 고민이 "커리어"면 → "너의 관성(직장운의 별)이 지금 약한 상태라 불안한 거야. 하지만 올해 하반기에 관성이 들어오면서..." 이런 식으로.\n\n';
+  prompt += '② 현재 삶의 상태: ' + stateText + '\n';
+  prompt += '→ 이 상태가 대운/세운의 흐름과 어떻게 연결되는지 설명해줘. 지금 이 상태가 일시적인지, 흐름의 일부인지.\n';
+  prompt += '  예: "변화의 흐름"이면 → "지금 대운이 바뀌는 시점이라 불안한 게 당연해. 이건 나빠서가 아니라 다음 단계로 가는 과정이야."\n\n';
+  prompt += '③ 자가 성격 진단: ' + (persText || '미입력') + '\n';
+  prompt += '→ 사용자가 느끼는 성격과 사주에서 보이는 성격을 비교해줘. 일치하면 "역시!", 다르면 "흥미로운데?" 하면서 왜 그런지 설명.\n';
+  prompt += '  예: 사주는 화(열정)인데 내향적이라고 답했으면 → "겉으론 조용해 보여도 속으로는 불꽃이 타오르는 타입이야. 그 에너지가 밖으로 나올 때가 곧 올 거야."\n\n';
+  prompt += '④ 연애 상태: ' + relText + '\n';
+  prompt += '→ 현재 연애 상태와 사주의 연애운을 연결해서 해석. 솔로면 언제 인연이 올지, 연애중이면 궁합이 어떨지, 이별했으면 위로와 다음 인연 시기.\n\n';
+  prompt += '⑤ 가장 알고 싶은 것: ' + interestText + '\n';
+  prompt += '→ 이 주제에 해당하는 섹션을 다른 섹션보다 2배 이상 자세히 써줘! 사주 근거를 풍부하게.\n\n';
+  prompt += '위 5가지 답변은 해설 전체에 녹여서 자연스럽게 반영하되, 특히 1번(사주 정체)과 관련 섹션에서 직접 언급해줘.\n\n';
+
+  const dayOh = OH_CG[ds];
+  const ohRel: Record<string, Record<string, string>> = {
+    '목':{'생':'화','극':'토','피':'금','원':'수'},
+    '화':{'생':'토','극':'금','피':'수','원':'목'},
+    '토':{'생':'금','극':'수','피':'목','원':'화'},
+    '금':{'생':'수','극':'목','피':'화','원':'토'},
+    '수':{'생':'목','극':'화','피':'토','원':'금'}
+  };
+  const ori = ohRel[dayOh] || {};
+  prompt += '=== 참고 데이터 ===\n';
+  prompt += '일간 ' + dayOh + ': ' + dayOh + '->생->' + (ori['생']||'') + ', ' + dayOh + '->극->' + (ori['극']||'') + ', ' + (ori['원']||'') + '->생->' + dayOh + ', ' + (ori['피']||'') + '->극->' + dayOh + '\n';
+  prompt += '2026=병오(화/화) 2027=정미(화/토) 2028=무신(토/토)\n';
+  prompt += '\n=== 월운 분석 구조 (월별 운세에 반드시 적용!) ===\n';
+  prompt += '월별 운세 = 사주 원국(고정) + 대운(10년) + 세운(그 해) + 월운(그 달)을 겹쳐서 봄\n';
+  prompt += '핵심: 내 일간과 그 달의 천간/지지 관계를 분석\n';
+  prompt += '- 상생(도움받는 달): 에너지가 좋고 일이 잘 풀림\n';
+  prompt += '- 상극(부딪히는 달): 갈등/변화가 생기지만 성장의 기회\n';
+  prompt += '- 합(인연/기회의 달): 좋은 만남, 계약, 합격에 유리\n';
+  prompt += '- 충(변화/사건의 달): 이동, 이직, 이별 등 변화 발생\n';
+  prompt += '- 형(스트레스/법적문제의 달): 구설수, 건강 주의\n';
+  prompt += '- 공망(비는 느낌의 달): 무리하지 말고 내실 다지기\n';
+  prompt += '오행-장기: 목=간담눈, 화=심장소장혀, 토=위비장입, 금=폐대장코, 수=신장방광귀\n';
+  prompt += '오행-방위: 목=동, 화=남, 토=중앙, 금=서, 수=북\n';
+  prompt += '오행-색: 목=초록, 화=빨강보라, 토=노랑갈색, 금=흰색은색, 수=검정파랑\n\n';
+
+  const rules = '=== 규칙 ===\n' +
+    '1. 첫 줄부터 바로 ## 으로 시작. 인사말 쓰지마\n' +
+    '2. 전부 빠짐없이 써. 생략/정보부족 금지\n' +
+    '3. [키워드] 로 시작\n' +
+    '4. 각 섹션 최소 10-20줄. 짧으면 안 돼! 풍성하게 써.\n' +
+    '5. 긍정적 해석 70% + 주의사항(부드럽게) 20% + 실용 조언 10%. 마무리는 긍정적\n' +
+    '6. 반말만! 존댓말 쓰면 틀림\n' +
+    '7. 사주 용어가 나올 때마다 반드시 괄호 안에 쉬운 설명을 넣어!\n' +
+    '8. 부정적 내용은 우회해서 부드럽게. 뒤에 반드시 해결책/긍정 마무리\n\n' +
+    '=== 말투 & 비유 규칙 (가장 중요!!) ===\n' +
+    '너는 친한 언니/오빠가 사주 봐주는 느낌이야. 딱딱한 학술 보고서 말고 카톡으로 수다 떠는 느낌!\n' +
+    '2-3문장마다 반드시 비유/은유/일상 비교를 넣어. 비유 없이 3문장 이상 이어지면 안 돼!\n\n' +
+    '비유 카테고리별 예시 (이런 느낌으로 다양하게!):\n' +
+    '- 음식/카페: "재물운이 아메리카노야. 쓴맛(노력) 뒤에 각성(수익)이 오는 타입" / "인성이 든든한 엄마표 집밥이야. 화려하진 않아도 너를 살려주는 기운"\n' +
+    '- 게임/레벨업: "지금 대운은 보스전 앞의 세이브 포인트야" / "식상이 터지면 콤보 스킬 발동! 창의력 올킬"\n' +
+    '- 날씨/계절: "올해 상반기는 안개 낀 아침이야. 앞이 안 보여도 해가 뜨면 확 걷혀" / "편관이 너를 누르는 건 한겨울 찬바람 같아. 춥지만 이 시간이 봄을 만들어"\n' +
+    '- SNS/트렌드: "너의 매력은 알고리즘 타는 릴스야. 한번 터지면 조회수 폭발" / "인복은 인스타 팔로워 같아. 진짜 친구는 적어도 \'좋아요\'는 확실히 눌러줘"\n' +
+    '- 영화/드라마: "지금 인생은 마블 영화 2편이야. 영웅이 시련 받는 구간이지만, 3편에서 어벤져스급 반전이 와"\n' +
+    '- 쇼핑/패션: "용신이 수(水)라 너한테 블루 컬러는 명품백 같은 거야. 들고 다니면 운이 올라가"\n' +
+    '위트 있는 표현도 적극 사용: ㅋㅋ, ㅎㅎ, "솔직히", "진짜", "이건 좀 레전드인데", "대박인 게"\n\n' +
+    '=== 심화 사주 개념 필수 사용 규칙 ===\n' +
+    '단순 오행 개수만 나열하지 마! 반드시 아래 심화 개념을 활용해:\n' +
+    '- 격국(格局): 이 사주의 격국이 뭔지 판별하고, 격국에 맞는 운의 흐름을 설명해. 예: "너는 식신격(食神格)이라 창작/표현으로 먹고사는 구조야"\n' +
+    '- 용신(用神)/희신/기신: 이 사주에 가장 필요한 오행(용신)이 뭔지, 도와주는 오행(희신)과 방해하는 오행(기신)이 뭔지 밝혀. 예: "용신이 수(水)인데 올해 병오년은 화(火) 기운이 강해서 기신이 활성화되는 해야. 마치 사막에서 물을 찾는 느낌!"\n' +
+    '- 신강/신약: 일간이 강한지 약한지(득령/득지/득세 기준) 판별하고 그에 맞는 운 해석. 예: "신약 사주라 인성(엄마의 보호막 같은 기운)이 들어오면 힘이 나고, 관성(직장 스트레스)이 오면 버거워"\n' +
+    '- 조후(調候): 태어난 계절과 사주의 온도 균형. 예: "겨울에 태어나서 사주가 좀 차가워. 화(Fire) 기운이 들어오는 해가 너한테 온수매트 같은 해야"\n' +
+    '- 통변(사건 해석): 대운/세운이 원국과 합/충/형할 때 어떤 사건이 생기는지 구체적으로. 예: "2027년 정미(丁未)가 네 일지와 합(合)이 되니까 그 해에 좋은 인연이 들어올 확률이 높아!"\n' +
+    '- 12운성 심화: 각 주의 12운성으로 에너지 상태 해석. 예: "일주가 건록(전성기)이라 너 자체 에너지는 충만한데, 시주가 쇠(衰)라 말년에는 좀 쉬어가는 흐름이야"\n' +
+    '모든 섹션에서 위 개념 중 최소 2개 이상을 자연스럽게 녹여서 설명해.\n\n' +
+    '=== 해결책/개운법 구체성 규칙 (매우 중요!) ===\n' +
+    '문제점이나 갈등을 언급할 때 "조심하면 돼" "노력하면 괜찮아" 같은 뜬구름 조언 절대 금지!\n' +
+    '반드시 구체적이고 실행 가능한 해결책을 제시해:\n\n' +
+    '나쁜 예 (금지):\n' +
+    '- "대화를 많이 하면 돼" → 너무 추상적\n' +
+    '- "조심하면 괜찮아" → 어떻게 조심하라는 건지 모름\n' +
+    '- "노력하면 좋아질 거야" → 빈말\n\n' +
+    '좋은 예 (이렇게!):\n' +
+    '- 관계 갈등: "월 1회 이상 함께 새로운 장소에 가봐. 너의 부족한 목(木) 기운을 채워주는 동쪽 방향의 공원이나 숲이 좋아. 대화할 때 상대가 말 끝나고 3초 기다렸다가 대답하는 연습을 해봐 - 너의 식상(표현욕)이 강해서 말을 끊는 습관이 생기기 쉬워"\n' +
+    '- 재물 문제: "매달 수입의 20%는 무조건 별도 계좌에 자동이체 걸어놔. 겁재(劫財)가 있는 사주라 눈앞에 돈이 보이면 쓰고 싶은 충동이 올 수 있어. 통장을 분리하는 게 물리적 방어막이야"\n' +
+    '- 건강 관리: "매일 아침 10분 걷기 + 주 2회 스트레칭. 너의 약한 목(木) 기운을 보충하려면 초록색 채소(시금치/브로콜리)를 매일 한 접시씩, 신맛 과일(레몬물 아침 한 잔)도 좋아"\n' +
+    '- 직장 스트레스: "관성(官星)이 일간을 누르는 구조라 상사에게 스트레스 받기 쉬워. 퇴근 후 30분은 반드시 나만의 시간을 가져봐. 화(火) 기운 보충을 위해 따뜻한 차 한잔 + 캔들 켜놓고 일기 쓰기가 너한테 딱이야"\n' +
+    '- 개운법: "용신이 수(水)니까: 1)검정/파랑 계열 소품(폰케이스, 지갑) 사용 2)북쪽 방향의 카페/식당 자주 가기 3)수영/반신욕 주 1회 4)생수 하루 2L 이상 5)숫자 1, 6을 비밀번호나 중요 날짜에 활용"\n' +
+    '이런 식으로 구체적 행동 + 빈도 + 오행 근거를 함께 제시해!\n';
+
+  const isEn = userData.lang === 'en';
+  const engInstruction = isEn ? '🚨 CRITICAL LANGUAGE INSTRUCTION 🚨\nYou MUST write EVERYTHING in English. EVERY sentence, EVERY section title, EVERY explanation — ALL in English.\nDo NOT write Korean sentences. Do NOT use Korean section titles.\nWhen you see Korean section titles like ##1.너는 이런 사람이야##, translate them to English like ##1.This is who you are##.\nSaju terms like 갑(甲) can appear with English meaning, but ALL text must be English.\nUse warm, casual, friendly tone — like talking to a close friend.\nIF YOU WRITE IN KOREAN, THE RESPONSE WILL BE REJECTED.\n\n' : '';
+  if (engInstruction) {
+    prompt = engInstruction + prompt;
+  }
+
+  const isMarried = userData.relationship === 3;
+
+  const p1Count = isMarried ? 9 : 10;
+  let prompt1 = prompt + '=== 아래 ' + p1Count + '개 항목을 써줘 (1~' + p1Count + '번) ===\n\n';
+  let n = 1;
+  prompt1 += '##' + n++ + '.' + CG[sj.dStem] + JJ[sj.dBranch] + ', 너는 이런 사람이야## 격국(格局) 판별 + 용신(用神)/기신 분석 + 신강/신약 판단을 먼저 해줘. 이 사주의 구조적 특성을 큰 그림으로 그린 뒤, 일간의 성격, 강점 2가지, 주의점 1가지. 오행 분포(각 개수와 비율)와 부족한 오행 보충법(색상/음식/방향)도 함께. 조후(調候) 분석으로 사주의 온도 균형도 설명해. 비유를 듬뿍 넣어서 읽는 재미가 있게!\n';
+  prompt1 += '##' + n++ + '.타고난 성격 & 멘탈 체력## 십성(' + sipsungStr + ') 기반 본인 내면 성격 스타일 + 12운성으로 에너지 상태 분석. 첫인상 vs 진짜 내면(년주 vs 일주 차이), 스트레스 받는 포인트, 멘탈 회복법. 정신력의 강약(인성/비겁 구조 기반). [주의: 이 섹션에서는 친구/대인관계/귀인/좋은사람/피할사람 언급 금지. 오직 본인의 내면, 정신력, 스트레스 패턴, 멘탈 회복법, 12운성 에너지 상태, 첫인상 vs 내면 차이만 분석할 것]\n';
+  prompt1 += '##' + n++ + '.돈과 나의 관계## 정재/편재 위치와 힘으로 월급형vs한방형 분석 + 재물그릇 크기 + 투자 체질(맞는 자산/피할 자산). 격국과 용신을 활용해서 돈이 잘 들어오는 시기와 조건, 투자 원칙 2개. 통변(通變)으로 재성 대운이 올 때 실제로 어떤 사건이 생기는지.\n';
+  prompt1 += '##' + n++ + '.천직 & 커리어 로드맵## 직장vs사업 적성, 격국에 맞는 업종 2-3개. 숨겨진 재능(식상/인성/편인 기반), 아직 발견 못한 잠재력과 개발법. 시험/합격운(2026~2028). 이직/전직 좋은 시기.\n' +
+    '추가로 반드시 포함할 것:\n' +
+    '- 🎯 딱 맞는 분야 TOP 5: 일간 오행, 격국, 용신, 식상/재성/관성 구조를 근거로 구체적인 직업/업종을 5개 추천해. 각각 왜 맞는지 사주명리학적 근거를 1-2줄로 설명해. (예: "너는 식신격에 화 기운이 강하니까 → 교육/강의/콘텐츠 크리에이터가 천직이야. 식신은 표현의 별이고 화는 전달력이니까.")\n' +
+    '- ⚠️ 안 맞는 직업 3가지: 기신 오행이나 사주 구조와 충돌하는 업종을 3개 알려줘. 왜 안 맞는지 명리학적 근거도 함께. (예: "금 기운이 기신인데 금융/투자업은 경금의 에너지를 계속 써야 해서 너한테는 스트레스가 극심할 수 있어.")\n';
+  if (!isMarried) {
+    prompt1 += '##' + n++ + '.연애 & 인연의 지도## 배우자궁(' + JJ[sj.dBranch] + ') 기반 미래 반쪽의 느낌과 주의점 + 사랑 타이밍(이성운 강한 시기) + 매력 무기(' + (shinsalStr !== '없음' ? shinsalStr : '사주적 매력 요소') + '). 연상/연하 분석(인성/식상/관성 구조 기반). 누가 먼저 다가가는 게 좋은 타입인지.\n';
+  }
+  prompt1 += '##' + n++ + '.나에게 좋은 사람 & 주의할 사람## [주의: 이 섹션에서는 성격/멘탈/내면 분석 금지. 오직 대인관계와 인연 분석만 할 것] 한 곳에 모아서 총정리:\n' +
+    '- 귀인(천을귀인/문창귀인 등): 어떤 띠/성격/직업이 나의 귀인인지, 만나는 시기/상황\n' +
+    '- 연상/연하 중 누가 더 잘 맞는지(인성/식상/관성 구조 기반)\n' +
+    '- 에너지를 주는 사람 vs 빼앗는 사람\n' +
+    '- 가까이 할 타입 3가지, 거리 둘 타입 2가지를 구체적으로. 용신 오행에 맞는 사람과 기신 오행의 사람 구분.\n';
+  prompt1 += '##' + n++ + '.건강 리포트## 오행 균형과 조후(사주 온도)로 취약 장기(' + (dayOh==='목'?'간/눈':dayOh==='화'?'심장/혈관':dayOh==='토'?'위/소화기':dayOh==='금'?'폐/호흡기':'신장/방광') + ') 분석 + 관리법 + 맞는 취미/운동 3가지(오행 근거). 건강이 흔들리는 시기 예측(대운/세운 기반). 사고수(事故數) 분석: 양인살/백호살/겁살 등 신살과 충(冲)이 있는 시기에 사고 위험 경고. 다치기 쉬운 시기: 대운/세운에서 충/형이 오는 구체적 년도 예측. 조심해야 할 상황: 오행별 취약 부위와 관련된 구체적 상황(예: 금(金) 약하면 교통사고 주의, 수(水) 약하면 신장/요로계 주의).\n';
+  prompt1 += '##' + n++ + '.가정 & 가족관계## 년주(조상궁) → 월주(부모궁/형제궁) → 일지(배우자궁) → 시주(자녀궁)으로 가정 전체를 분석. 부모와의 관계(월주-일주 충/형 여부), 형제 관계(비겁 구조), 가족 갈등 해소법, 가족 여행 좋은 방위/계절.\n';
+  prompt1 += '##' + n++ + '.자녀운 & 부모 스타일## 시주와 식상/관성 근거로: 자녀복(시주 12운성), 자녀가 들어오기 좋은 시기(년도/나이, 통변으로 식상운이 오는 해), 아이 예상 성향(시주 오행), 어떤 부모 스타일이 맞는지.\n';
+  prompt1 += '##' + n++ + '.지금 나의 인생 챕터## 현재 나이(' + (2026 - userData.year) + '세) 대운 분석. 12운성으로 지금 에너지 상태, 이 대운이 인생에서 어떤 의미인지. 현재 대운의 천간/지지가 원국과 어떻게 작용하는지 분석하고, 지금 시기에 집중해야 할 것과 내려놓아야 할 것을 알려줘.\n\n';
+  prompt1 += getRelevantRefs({ dayMaster: ds, topics: ['personality', 'wealth', 'career', 'love', 'health', 'general'] });
+  prompt1 += rules;
+
+  const p2Count = isMarried ? 9 : 10;
+  let prompt2 = prompt + '=== 아래 ' + p2Count + '개 항목을 써줘 (11~' + (10 + p2Count) + '번) ===\n\n';
+  prompt2 += '##11.2027년 미리보기## 정미년(丁未)이 이 사주의 원국과 어떻게 작용하는지 통변 분석. 합/충/형이 생기는지, 용신/기신 관계는 어떤지. 핵심 사건 예측 + 준비할 것.\n';
+  prompt2 += '##12.향후 10년 미래 시나리오 (2026~2036)## 향후 10년간의 전체적인 흐름을 연도별로 분석해줘:\n' +
+    '- 2026~2036년까지 매년의 세운(歲運) 천간지지를 밝히고, 내 원국과의 합/충/형 관계를 분석\n' +
+    '- 대운(大運) 전환이 있다면 언제 바뀌는지, 바뀌면 어떤 변화가 오는지\n' +
+    '- 삼재(三災) 시기: 이 사주의 년지 기준으로 삼재가 드는 해가 언제인지 계산해서 알려줘. 들삼재/눌삼재/날삼재 구분하고, 각각 어떻게 대비하면 좋은지 구체적으로\n' +
+    '  (삼재 계산: 신자진생→인묘진년, 해묘미생→사오미년, 인오술생→신유술년, 사유축생→해자축년)\n' +
+    '- 10년 중 가장 좋은 해 TOP 3: 용신이 활성화되거나 합이 오는 해\n' +
+    '- 10년 중 조심할 해 TOP 2: 기신이 강해지거나 충/형이 오는 해 (부드럽게, 대비법과 함께)\n' +
+    '- ⚡ 닥쳐올 수 있는 어려움 & 위기 시나리오: 10년 안에 사주명리학적으로 예상되는 구체적인 어려움들을 분석해줘. 반드시 근거를 밝혀:\n' +
+    '  · 충(冲)이 오는 해: 어떤 지지끼리 충돌하는지, 그로 인해 어떤 영역(직장/건강/인간관계/재물)에 위기가 오는지\n' +
+    '  · 형(刑)이 오는 해: 자형/축술미형/인사신형 등 해당되는 형살과 그 영향\n' +
+    '  · 기신(忌神)이 강해지는 시기: 기신 오행이 세운/대운에서 득세하면 어떤 증상(건강 악화, 재물 손실, 관재구설 등)이 나타나는지\n' +
+    '  · 공망(空亡) 시기: 해당 년도에 공망이 작용하면 어떤 일이 허무하게 될 수 있는지\n' +
+    '  · 각 어려움마다 "대비법"을 반드시 함께 알려줘 (용신 강화, 방위, 색상, 행동 지침 등)\n' +
+    '- 전체 흐름을 한 문장으로: "이 10년은 OOO한 시기야" 같은 핵심 메시지\n' +
+    '최소 25줄. 비유를 듬뿍 써서 읽는 재미를 줘!\n';
+  let num = 13;
+  if (!isMarried) {
+    prompt2 += '##' + num + '.결혼 최적 타이밍## 배우자성(남:재성/여:관성)이 활성화되는 대운/세운 분석. 결혼하기 가장 좋은 해/나이, 어떤 조건에서 결혼하면 행복할지. 통변으로 결혼 사건이 일어나는 세운 지지 계산.\n';
+    num++;
+  }
+  prompt2 += '##' + num + '.내 집 마련 & 부동산## 부동산 시기(토/금 대운). ' + (dayOh==='목'?'동':dayOh==='화'?'남':dayOh==='토'?'중앙':dayOh==='금'?'서':'북') + '쪽 유리. 묘(墓)와 재성의 관계로 재물 축적 시기 분석.\n';
+  num++;
+  prompt2 += '##' + num + '.행운 루틴 & 개운법## 용신 오행에 맞는 매일 행운 습관 3개 + 행운의 색/숫자/방향/요일/계절을 오행 근거와 함께. 기신을 피하는 실생활 팁도.\n';
+  num++;
+  prompt2 += '##' + num + '.인생에서 가장 빛나는 나이## 대운 흐름과 12운성 변화로 인생 하이라이트 시기 예측. 그때 뭘 하면 좋을지, 이미 지났으면 다음 빛나는 시기. 용신 대운과 건록/제왕이 겹치는 시기 탐색.\n';
+  num++;
+  prompt2 += '##' + num + '.나에게 보내는 편지## 이 사주의 격국, 용신, 대운 흐름을 바탕으로 한 따뜻한 응원 메시지. "너의 사주를 보니 이런 사람이고, 이런 미래가 기다리고 있어"라는 느낌으로 감동적이고 진심을 담아서. 비유를 많이 써서 가슴에 와닿게.\n\n';
+  prompt2 += getRelevantRefs({ dayMaster: ds, topics: ['timing', 'compatibility', 'general'] });
+  prompt2 += rules;
+
+  /* 영어 모드: 각 분리 프롬프트 끝에도 영어 리마인더 추가 */
+  if (isEn) {
+    const engReminder = '\n\n🚨 FINAL REMINDER — THIS IS THE MOST IMPORTANT INSTRUCTION 🚨\n' +
+      'Write EVERYTHING in English. EVERY section title must be in English (translate Korean titles).\n' +
+      'Example: Write ##1.This is who you are## NOT ##1.너는 이런 사람이야##\n' +
+      'Example: Write ##2.Personality & Mental Strength## NOT ##2.타고난 성격 & 멘탈 체력##\n' +
+      'ALL explanations, ALL metaphors, ALL advice — EVERYTHING must be in English.\n' +
+      'Korean characters are ONLY allowed for Saju terms in parentheses like Gap(甲), Eul(乙).\n' +
+      'IF ANY KOREAN SENTENCE APPEARS, THE ENTIRE RESPONSE WILL BE REJECTED AND REGENERATED.\n';
+    prompt1 += engReminder;
+    prompt2 += engReminder;
+  }
+
+  return [prompt1, prompt2];
+}

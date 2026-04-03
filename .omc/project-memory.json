@@ -1,0 +1,343 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1774098524714,
+  "projectRoot": "C:\\Users\\jshim\\Desktop\\saju-app",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "16.2.0",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "19.2.4",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.4",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 0,
+      "lastAccessed": 1774098524661,
+      "keyFiles": []
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1774098524663,
+      "keyFiles": []
+    },
+    "src\\app": {
+      "path": "src\\app",
+      "purpose": "Application code",
+      "fileCount": 3,
+      "lastAccessed": 1774098524677,
+      "keyFiles": [
+        "globals.css",
+        "layout.tsx",
+        "page.tsx"
+      ]
+    },
+    "src\\components": {
+      "path": "src\\components",
+      "purpose": "UI components",
+      "fileCount": 1,
+      "lastAccessed": 1774098524678,
+      "keyFiles": [
+        "SajuApp.tsx"
+      ]
+    },
+    "src\\lib": {
+      "path": "src\\lib",
+      "purpose": "Library code",
+      "fileCount": 4,
+      "lastAccessed": 1774098524678,
+      "keyFiles": [
+        "i18n.ts",
+        "lunar-solar.ts",
+        "saju-calc.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src\\components\\SajuApp.tsx",
+      "accessCount": 771,
+      "lastAccessed": 1775229703543,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\saju-prompt.ts",
+      "accessCount": 111,
+      "lastAccessed": 1775229234448,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\i18n.ts",
+      "accessCount": 47,
+      "lastAccessed": 1775229582829,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\saju-calc.ts",
+      "accessCount": 27,
+      "lastAccessed": 1774266089600,
+      "type": "directory"
+    },
+    {
+      "path": "src\\app\\api\\saju\\route.ts",
+      "accessCount": 18,
+      "lastAccessed": 1775227066433,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\layout.tsx",
+      "accessCount": 17,
+      "lastAccessed": 1775229190302,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 15,
+      "lastAccessed": 1775227001900,
+      "type": "directory"
+    },
+    {
+      "path": "src\\app\\globals.css",
+      "accessCount": 11,
+      "lastAccessed": 1774176792789,
+      "type": "directory"
+    },
+    {
+      "path": "src\\lib\\saju-ref-selector.ts",
+      "accessCount": 8,
+      "lastAccessed": 1774266029416,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\saju-references.ts",
+      "accessCount": 8,
+      "lastAccessed": 1774266077899,
+      "type": "file"
+    },
+    {
+      "path": "public\\manifest.json",
+      "accessCount": 8,
+      "lastAccessed": 1775229193148,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 7,
+      "lastAccessed": 1775228139141,
+      "type": "directory"
+    },
+    {
+      "path": "public\\favicon.svg",
+      "accessCount": 5,
+      "lastAccessed": 1775229194415,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\saju-advanced-prompt.ts",
+      "accessCount": 3,
+      "lastAccessed": 1774176800824,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 3,
+      "lastAccessed": 1774265970087,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\lunar-solar.ts",
+      "accessCount": 3,
+      "lastAccessed": 1774266028830,
+      "type": "file"
+    },
+    {
+      "path": "vitest.config.ts",
+      "accessCount": 3,
+      "lastAccessed": 1774266079137,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\page.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1774176786537,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\__tests__\\lunar-solar.test.ts",
+      "accessCount": 2,
+      "lastAccessed": 1774266089674,
+      "type": "file"
+    },
+    {
+      "path": "next.config.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775226999654,
+      "type": "file"
+    },
+    {
+      "path": "test-output.txt",
+      "accessCount": 1,
+      "lastAccessed": 1774104522098,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1774176792316,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1774176831387,
+      "type": "file"
+    },
+    {
+      "path": "src\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1774176836203,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1774176846263,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1774176848432,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\saju\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1774176856226,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1774176869148,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1774176891948,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\__tests__\\i18n.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774266088864,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\__tests__\\saju-ref-selector.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774266104556,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\__tests__\\saju-calc.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774266106180,
+      "type": "file"
+    },
+    {
+      "path": "src\\__tests__\\sanity.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774266134607,
+      "type": "file"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 1,
+      "lastAccessed": 1775227009665,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1775227039275,
+      "type": "file"
+    },
+    {
+      "path": "public\\sw.js",
+      "accessCount": 1,
+      "lastAccessed": 1775227239276,
+      "type": "file"
+    },
+    {
+      "path": "public",
+      "accessCount": 1,
+      "lastAccessed": 1775228139749,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}
