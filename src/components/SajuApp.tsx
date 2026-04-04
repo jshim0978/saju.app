@@ -3468,12 +3468,145 @@ export default function SajuApp() {
   }
 
   /* ===== SCREEN 9: Star Charging ===== */
+  const [chargeStep, setChargeStep] = useState<'select' | 'confirm'>('select');
+  const [selectedCharge, setSelectedCharge] = useState<{ name: string; price: string; priceNum: number; stars: number; bonus: number } | null>(null);
+  const [payChecks, setPayChecks] = useState([false, false, false]);
+  const allChecked = payChecks.every(Boolean);
+
   function renderChargeScreen() {
     const chargeOpts = [
-      { name: t('chargeLabelLight', lang), price: lang === 'en' ? '$1' : '1,000원', stars: 10, bonus: 0, note: t('chargeDescSaju1', lang), popular: false, best: false },
-      { name: t('chargeLabelPopular', lang), price: lang === 'en' ? '$2' : '2,000원', stars: 25, bonus: 5, note: t('chargeDescBestValue', lang), popular: true, best: true },
+      { name: t('chargeLabelLight', lang), price: lang === 'en' ? '$1' : '1,000원', priceNum: 1000, stars: 10, bonus: 0, note: t('chargeDescSaju1', lang), popular: false, best: false },
+      { name: t('chargeLabelPopular', lang), price: lang === 'en' ? '$2' : '2,000원', priceNum: 2000, stars: 25, bonus: 5, note: t('chargeDescBestValue', lang), popular: true, best: true },
     ];
 
+    const businessInfo = {
+      companyName: process.env.NEXT_PUBLIC_COMPANY_NAME || '상호명을 입력하세요',
+      ceoName: process.env.NEXT_PUBLIC_CEO_NAME || '대표자명',
+      businessNumber: process.env.NEXT_PUBLIC_BUSINESS_NUMBER || '000-00-00000',
+      salesNumber: process.env.NEXT_PUBLIC_SALES_NUMBER || '제0000-서울XX-0000호',
+      address: process.env.NEXT_PUBLIC_ADDRESS || '사업장 주소를 입력하세요',
+      phone: process.env.NEXT_PUBLIC_CS_PHONE || '000-0000-0000',
+      email: process.env.NEXT_PUBLIC_CS_EMAIL || 'support@example.com',
+    };
+
+    /* ----- Confirm step (결제 확인) ----- */
+    if (chargeStep === 'confirm' && selectedCharge) {
+      const totalStars = selectedCharge.stars + selectedCharge.bonus;
+      return (
+        <div className="inner screen-enter" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+          <button className="back-btn" onClick={() => { setChargeStep('select'); setPayChecks([false, false, false]); }}>{t('payBack', lang)}</button>
+
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '40px', marginBottom: '8px' }}>💳</div>
+            <h2 className="gradient-text" style={{ marginBottom: '4px' }}>{t('payConfirmTitle', lang)}</h2>
+          </div>
+
+          {/* Product card */}
+          <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>⭐ {selectedCharge.name}</h3>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
+                {selectedCharge.price}
+              </div>
+            </div>
+
+            <div style={{ fontSize: '13px', lineHeight: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '4px 0' }}>
+                <span style={{ color: 'rgba(245,240,232,0.5)' }}>{t('payProductName', lang)}</span>
+                <span style={{ color: 'var(--text)' }}>별빛 ⭐{selectedCharge.stars}{selectedCharge.bonus > 0 ? '+' + selectedCharge.bonus : ''}{t('starUnit', lang)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '4px 0' }}>
+                <span style={{ color: 'rgba(245,240,232,0.5)' }}>{t('payPrice', lang)}</span>
+                <span style={{ color: 'var(--text)' }}>{selectedCharge.price}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '4px 0' }}>
+                <span style={{ color: 'rgba(245,240,232,0.5)' }}>{t('payDelivery', lang)}</span>
+                <span style={{ color: 'var(--text)' }}>{t('payDeliveryValue', lang)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                <span style={{ color: 'rgba(245,240,232,0.5)' }}>{t('payTiming', lang)}</span>
+                <span style={{ color: 'var(--text)' }}>{t('payTimingValue', lang)}</span>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '12px', lineHeight: 1.7, color: 'rgba(245,240,232,0.45)', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              {t('payServiceDesc', lang)}
+            </div>
+          </div>
+
+          {/* Refund policy */}
+          <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)', padding: '16px', marginBottom: '16px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px 0' }}>{t('payRefundTitle', lang)}</h4>
+            <ul style={{ margin: 0, paddingLeft: '16px' }}>
+              {['payRefund1', 'payRefund2', 'payRefund3', 'payRefund4'].map(k => (
+                <li key={k} style={{ fontSize: '11.5px', lineHeight: 1.7, color: 'rgba(245,240,232,0.5)', marginBottom: '2px' }}>{t(k, lang)}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Checkboxes */}
+          <div className="card" style={{ padding: '16px', marginBottom: '16px' }}>
+            {/* Select all */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+              onClick={() => { const next = !allChecked; setPayChecks([next, next, next]); }}>
+              <input type="checkbox" checked={allChecked} readOnly style={{ width: '20px', height: '20px', accentColor: 'var(--primary)', cursor: 'pointer' }} />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{t('payCheckAll', lang)}</span>
+            </div>
+            {['payCheck1', 'payCheck2', 'payCheck3'].map((k, i) => (
+              <div key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 0', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                onClick={() => { const next = [...payChecks]; next[i] = !next[i]; setPayChecks(next); }}>
+                <input type="checkbox" checked={payChecks[i]} readOnly style={{ width: '20px', height: '20px', minWidth: '20px', marginTop: '1px', accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                <span style={{ fontSize: '12.5px', lineHeight: 1.5, color: 'rgba(245,240,232,0.75)' }}>{t(k, lang)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Pay button */}
+          <button
+            disabled={!allChecked}
+            onClick={() => {
+              // TODO: 토스페이먼츠 연동 시 여기서 requestPayment 호출
+              // 현재는 테스트 모드로 바로 별 충전
+              updateStarBalance(starBalance + totalStars);
+              setChargeStep('select');
+              setPayChecks([false, false, false]);
+              setSelectedCharge(null);
+              alert(t('paySuccess', lang) + ' ⭐' + totalStars + t('payStarsAdded', lang));
+            }}
+            style={{
+              width: '100%', padding: '16px', border: 'none', borderRadius: 'var(--radius-sm)',
+              fontSize: '17px', fontWeight: 700, cursor: allChecked ? 'pointer' : 'not-allowed',
+              background: allChecked ? 'linear-gradient(135deg, var(--primary), var(--primary-light))' : 'rgba(255,255,255,0.08)',
+              color: allChecked ? '#0A0E2A' : 'rgba(245,240,232,0.3)',
+              transition: 'all 0.2s', fontFamily: 'inherit', minHeight: '52px',
+            }}
+          >
+            {selectedCharge.price + ' ' + t('payTestBtn', lang)}
+          </button>
+
+          <p style={{ textAlign: 'center', fontSize: '11.5px', color: 'rgba(245,240,232,0.4)', marginTop: '12px', lineHeight: 1.5 }}>
+            {t('payNotice', lang)}
+          </p>
+
+          {/* Business info footer */}
+          <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '11px', lineHeight: 1.8, color: 'rgba(245,240,232,0.25)' }}>
+            <div style={{ fontWeight: 700, color: 'rgba(245,240,232,0.4)', marginBottom: '4px' }}>{t('payBusinessInfo', lang)}</div>
+            <div>{businessInfo.companyName} | {lang === 'ko' ? '대표' : 'CEO'}: {businessInfo.ceoName}</div>
+            <div>{lang === 'ko' ? '사업자등록번호' : 'Business No'}: {businessInfo.businessNumber}</div>
+            <div>{lang === 'ko' ? '통신판매업' : 'Sales No'}: {businessInfo.salesNumber}</div>
+            <div>{businessInfo.address}</div>
+            <div>{lang === 'ko' ? '고객센터' : 'Support'}: {businessInfo.phone} | {businessInfo.email}</div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <span style={{ color: 'rgba(245,240,232,0.35)', textDecoration: 'underline', cursor: 'pointer' }}>{lang === 'ko' ? '이용약관' : 'Terms'}</span>
+              <span style={{ color: 'rgba(245,240,232,0.35)', textDecoration: 'underline', cursor: 'pointer' }}>{lang === 'ko' ? '개인정보처리방침' : 'Privacy'}</span>
+              <span style={{ color: 'rgba(245,240,232,0.35)', textDecoration: 'underline', cursor: 'pointer' }}>{lang === 'ko' ? '환불정책' : 'Refund'}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ----- Select step (충전 옵션 선택) ----- */
     return (
       <div className="inner screen-enter" style={{ paddingTop: '40px' }}>
         <button className="back-btn" onClick={() => setCurrentScreen(0)}>{t('backBtn', lang)}</button>
@@ -3512,8 +3645,9 @@ export default function SajuApp() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>{opt.price}</span>
                 <button className="btn btn-primary" style={{ padding: '10px 24px', fontSize: '15px' }} onClick={() => {
-                  alert(t('testModeAlert', lang) + ' ' + opt.stars + t('testStarsCharged', lang));
-                  updateStarBalance(starBalance + opt.stars);
+                  setSelectedCharge(opt);
+                  setPayChecks([false, false, false]);
+                  setChargeStep('confirm');
                 }}>{t('chargeBtn', lang)}</button>
               </div>
               <div style={{ textAlign: 'right', marginTop: '4px', fontSize: '11px', color: 'var(--text-dim)' }}>{t('starPrice', lang)}</div>

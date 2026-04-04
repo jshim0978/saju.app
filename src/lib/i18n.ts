@@ -665,9 +665,35 @@ export const T: Record<string, Record<Lang, string>> = {
   pregTier75: { ko: '🌸 서로 돕는 관계! 함께 성장하는 아름다운 인연', en: '🌸 A helping bond! A beautiful connection growing together' },
   pregTierDefault: { ko: '🤗 따뜻한 조화! 사랑으로 모든 게 채워지는 관계', en: '🤗 Warm harmony! A relationship filled with love' },
 
+  // Payment
+  payConfirmTitle: { ko: '결제 확인', en: 'Confirm Payment' },
+  payProductName: { ko: '상품명', en: 'Product' },
+  payPrice: { ko: '결제금액', en: 'Amount' },
+  payDelivery: { ko: '제공 방식', en: 'Delivery' },
+  payDeliveryValue: { ko: '결제 완료 후 즉시 별 충전', en: 'Stars charged immediately after payment' },
+  payTiming: { ko: '제공 시점', en: 'When' },
+  payTimingValue: { ko: '결제 완료 즉시', en: 'Immediately' },
+  payCheckAll: { ko: '전체 동의', en: 'Agree to all' },
+  payCheck1: { ko: '상품명, 결제금액, 제공 방식 및 제공 시점을 확인했습니다.', en: 'I confirm the product name, price, delivery method, and timing.' },
+  payCheck2: { ko: '본 서비스는 디지털콘텐츠/온라인 용역으로서 서비스 제공이 개시된 이후 청약철회 또는 환불이 제한될 수 있음을 확인했습니다.', en: 'I understand that refunds may be limited after digital content delivery has begun.' },
+  payCheck3: { ko: '이용약관 및 개인정보처리방침에 동의합니다.', en: 'I agree to the Terms of Service and Privacy Policy.' },
+  payBtnLabel: { ko: '결제하기', en: 'Pay Now' },
+  payTestBtn: { ko: '테스트 결제하기', en: 'Test Payment' },
+  payNotice: { ko: '결제 완료 시 주문이 확정되며, 별이 즉시 충전됩니다.', en: 'Stars will be charged immediately upon payment.' },
+  payRefundTitle: { ko: '환불 안내', en: 'Refund Policy' },
+  payRefund1: { ko: '본 서비스는 결제 후 즉시 제공되는 디지털콘텐츠입니다.', en: 'This is digital content delivered immediately after payment.' },
+  payRefund2: { ko: '서비스 제공이 개시되지 않은 경우 환불 가능합니다.', en: 'Refunds are available if service has not been provided.' },
+  payRefund3: { ko: '서비스 제공 개시 이후 환불이 제한될 수 있습니다.', en: 'Refunds may be limited after service delivery begins.' },
+  payRefund4: { ko: '시스템 오류, 중복 결제 시 환불 가능합니다.', en: 'Refunds available for system errors or duplicate payments.' },
+  payServiceDesc: { ko: '본 서비스는 이용자가 입력한 정보를 바탕으로 사주 해석 결과를 제공하는 온라인 디지털 서비스입니다. 제공되는 해석 결과는 참고용 정보이며, 특정 결과나 효과를 보장하지 않습니다.', en: 'This service provides Saju readings based on user-provided information. Results are for reference only and do not guarantee specific outcomes.' },
+  payBusinessInfo: { ko: '사업자 정보', en: 'Business Info' },
+  payBack: { ko: '← 돌아가기', en: '← Back' },
+  paySuccess: { ko: '결제가 완료되었습니다!', en: 'Payment complete!' },
+  payStarsAdded: { ko: '별이 충전되었어!', en: 'Stars have been charged!' },
+
   // Translate button
   translateToEn: { ko: '🌐 Translate to English', en: '🌐 Translate to English' },
-  translateToKo: { ko: '🌐 한국어로 번역', en: '🌐 한국어로 번역' },
+  translateToKo: { ko: '🌐 한국어로 번역', en: '🌐 Translate to Korean' },
   translating: { ko: '번역 중...', en: 'Translating...' },
 };
 
