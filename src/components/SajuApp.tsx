@@ -3549,13 +3549,17 @@ export default function SajuApp() {
             {/* Select all */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
               onClick={() => { const next = !allChecked; setPayChecks([next, next, next]); }}>
-              <input type="checkbox" checked={allChecked} readOnly style={{ width: '20px', height: '20px', accentColor: 'var(--primary)', cursor: 'pointer' }} />
+              <div style={{ width: '22px', height: '22px', minWidth: '22px', borderRadius: '5px', border: allChecked ? '2px solid var(--primary)' : '2px solid rgba(255,255,255,0.25)', background: allChecked ? 'var(--primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                {allChecked && <span style={{ color: '#0A0E2A', fontSize: '14px', fontWeight: 900, lineHeight: 1 }}>✓</span>}
+              </div>
               <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{t('payCheckAll', lang)}</span>
             </div>
             {['payCheck1', 'payCheck2', 'payCheck3'].map((k, i) => (
               <div key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 0', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
                 onClick={() => { const next = [...payChecks]; next[i] = !next[i]; setPayChecks(next); }}>
-                <input type="checkbox" checked={payChecks[i]} readOnly style={{ width: '20px', height: '20px', minWidth: '20px', marginTop: '1px', accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                <div style={{ width: '22px', height: '22px', minWidth: '22px', borderRadius: '5px', border: payChecks[i] ? '2px solid var(--primary)' : '2px solid rgba(255,255,255,0.25)', background: payChecks[i] ? 'var(--primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', marginTop: '1px' }}>
+                  {payChecks[i] && <span style={{ color: '#0A0E2A', fontSize: '14px', fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                </div>
                 <span style={{ fontSize: '12.5px', lineHeight: 1.5, color: 'rgba(245,240,232,0.75)' }}>{t(k, lang)}</span>
               </div>
             ))}
