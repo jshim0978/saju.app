@@ -497,22 +497,27 @@ export default function SajuApp() {
 
   const [isCapturing, setIsCapturing] = useState(false);
 
+  async function captureElement() {
+    const el = (document.querySelector('.inner.screen-enter') || document.querySelector('.app-container')) as HTMLElement;
+    if (!el) return null;
+    const fixedEls = document.querySelectorAll('.back-btn, [style*="position:fixed"], [style*="position: fixed"]');
+    const origDisplay: string[] = [];
+    fixedEls.forEach((fe, i) => { origDisplay[i] = (fe as HTMLElement).style.display; (fe as HTMLElement).style.display = 'none'; });
+    const html2canvas = (await import('html2canvas')).default;
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#0A0E2A', scale: 1.5, useCORS: true, logging: false,
+      scrollY: -window.scrollY, windowHeight: el.scrollHeight, height: el.scrollHeight,
+    });
+    fixedEls.forEach((fe, i) => { (fe as HTMLElement).style.display = origDisplay[i]; });
+    return canvas;
+  }
+
   async function shareResult(_text: string, title: string) {
     if (isCapturing) return;
     setIsCapturing(true);
     try {
-      const el = (document.querySelector('.inner.screen-enter') || document.querySelector('.app-container')) as HTMLElement;
-      if (!el) { setIsCapturing(false); return; }
-      // Hide fixed UI elements during capture
-      const fixedEls = document.querySelectorAll('.back-btn, [style*="position:fixed"], [style*="position: fixed"]');
-      const origDisplay: string[] = [];
-      fixedEls.forEach((fe, i) => { origDisplay[i] = (fe as HTMLElement).style.display; (fe as HTMLElement).style.display = 'none'; });
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(el, {
-        backgroundColor: '#0A0E2A', scale: 1.5, useCORS: true, logging: false,
-        scrollY: -window.scrollY, windowHeight: el.scrollHeight, height: el.scrollHeight,
-      });
-      fixedEls.forEach((fe, i) => { (fe as HTMLElement).style.display = origDisplay[i]; });
+      const canvas = await captureElement();
+      if (!canvas) { setIsCapturing(false); return; }
       canvas.toBlob(async (blob) => {
         if (!blob) { setIsCapturing(false); return; }
         const file = new File([blob], 'saju-result.png', { type: 'image/png' });
@@ -527,6 +532,37 @@ export default function SajuApp() {
       }, 'image/png');
     } catch {
       alert(lang === 'en' ? 'Failed to capture image' : '이미지 캡처에 실패했어');
+      setIsCapturing(false);
+    }
+  }
+
+  async function saveAsPdf(title: string) {
+    if (isCapturing) return;
+    setIsCapturing(true);
+    try {
+      const canvas = await captureElement();
+      if (!canvas) { setIsCapturing(false); return; }
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      const { default: jsPDF } = await import('jspdf');
+      const imgW = canvas.width;
+      const imgH = canvas.height;
+      const pdfW = 210; // A4 width in mm
+      const pdfH = (imgH * pdfW) / imgW;
+      const pageH = 297; // A4 height in mm
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let posY = 0;
+      let page = 0;
+      while (posY < pdfH) {
+        if (page > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, -posY, pdfW, pdfH);
+        posY += pageH;
+        page++;
+      }
+      pdf.save((title || 'saju-result') + '.pdf');
+      alert(lang === 'en' ? 'PDF saved!' : 'PDF가 저장되었어!');
+      setIsCapturing(false);
+    } catch {
+      alert(lang === 'en' ? 'Failed to save PDF' : 'PDF 저장에 실패했어');
       setIsCapturing(false);
     }
   }
@@ -1726,6 +1762,13 @@ export default function SajuApp() {
             </button>
           )}
           {aiText && !isGenerating && (
+            <button className="btn" style={{ flex: 1, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--text)', fontSize: '13px' }}
+              disabled={isCapturing}
+              onClick={() => saveAsPdf((userData.name || '') + (lang === 'en' ? "'s Saju Reading" : '의 사주 해설'))}>
+              {isCapturing ? (lang === 'en' ? '📄 Saving...' : '📄 저장 중...') : (lang === 'en' ? '📄 Save PDF' : '📄 PDF 저장')}
+            </button>
+          )}
+          {aiText && !isGenerating && (
             <button className="btn" style={{ flex: 1, background: 'rgba(159,122,234,0.15)', border: '1px solid rgba(159,122,234,0.3)', color: 'var(--text)', fontSize: '13px' }} onClick={() => {
               try {
                 const results = JSON.parse(localStorage.getItem('saju-saved-results') || '[]');
@@ -2529,6 +2572,11 @@ export default function SajuApp() {
                   onClick={() => shareResult(compatAiText, (userData.name || '') + ' & ' + (compatPerson2.name || '') + (lang === 'en' ? "'s Compatibility" : '의 궁합'))}>
                   {isCapturing ? (lang === 'en' ? '📸 Capturing...' : '📸 캡처 중...') : (lang === 'en' ? '📸 Share Image' : '📸 이미지 공유')}
                 </button>
+                <button className="btn" style={{ width: '100%', marginTop: '8px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--text)', fontSize: '13px', padding: '10px' }}
+                  disabled={isCapturing}
+                  onClick={() => saveAsPdf((userData.name || '') + ' & ' + (compatPerson2.name || '') + (lang === 'en' ? "'s Compatibility" : '의 궁합'))}>
+                  {isCapturing ? (lang === 'en' ? '📄 Saving...' : '📄 저장 중...') : (lang === 'en' ? '📄 Save PDF' : '📄 PDF 저장')}
+                </button>
                 <button className="btn" style={{ width: '100%', marginTop: '8px', background: 'rgba(159,122,234,0.15)', border: '1px solid rgba(159,122,234,0.3)', color: 'var(--text)', fontSize: '13px', padding: '10px' }} onClick={() => {
                   try {
                     const results = JSON.parse(localStorage.getItem('saju-saved-results') || '[]');
@@ -3003,6 +3051,13 @@ export default function SajuApp() {
               disabled={isCapturing}
               onClick={() => shareResult(aiText, (userData.name || '') + (lang === 'en' ? "'s Saju Reading" : '의 사주 해설'))}>
               {isCapturing ? (lang === 'en' ? '📸 Capturing...' : '📸 캡처 중...') : (lang === 'en' ? '📸 Share Image' : '📸 이미지 공유')}
+            </button>
+          )}
+          {aiText && !isGenerating && (
+            <button className="btn" style={{ flex: 1, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--text)', fontSize: '13px' }}
+              disabled={isCapturing}
+              onClick={() => saveAsPdf((userData.name || '') + (lang === 'en' ? "'s Saju Reading" : '의 사주 해설'))}>
+              {isCapturing ? (lang === 'en' ? '📄 Saving...' : '📄 저장 중...') : (lang === 'en' ? '📄 Save PDF' : '📄 PDF 저장')}
             </button>
           )}
           {aiText && !isGenerating && (
