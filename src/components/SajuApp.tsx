@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   calcSaju, getOhCount, CG, JJ, CG_HANJA, JJ_HANJA,
   OH_CG, OH_JJ, OH_EN, OH_ICON, PROFILES,
@@ -83,7 +83,7 @@ function getStarPath(type: string, size: number): string {
   return star8Path(size);
 }
 
-function StarsBackground() {
+const StarsBackground = React.memo(function StarsBackground() {
   const [elements, setElements] = useState<StarElement[]>([]);
 
   useEffect(() => {
@@ -180,7 +180,29 @@ function StarsBackground() {
       })}
     </div>
   );
-}
+});
+
+/* ===== Countdown Timer — isolated to prevent 1s re-renders of parent ===== */
+const CountdownTimer = React.memo(function CountdownTimer() {
+  const [text, setText] = useState('23:59:59');
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      const diff = end.getTime() - now.getTime();
+      if (diff <= 0) return;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setText(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'));
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  return <>{text}</>;
+});
 
 /* ===== Helper Data ===== */
 const TIMES = [
@@ -372,24 +394,7 @@ export default function SajuApp() {
     safeSetItem('saju-stars', String(newBalance));
   }
 
-  /* Paywall countdown timer */
-  const [timerText, setTimerText] = useState('23:59:59');
-  useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-      const diff = end.getTime() - now.getTime();
-      if (diff <= 0) return;
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setTimerText(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'));
-    };
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  /* Paywall countdown timer — moved to <CountdownTimer /> component to avoid 1s re-renders */
 
   /* Compat state */
   const [compatPerson1, setCompatPerson1] = useState({ name: '', year: 1995, month: 1, day: 1, hour: -1, isLunar: false });
@@ -476,18 +481,13 @@ export default function SajuApp() {
       setCompatPaywall(false);
     }
   }
-  // Auto-reset when person info or relationship type changes
+  // Auto-reset when person info or relationship type changes (useEffect to avoid render-time setState)
   const compatKey = compatPerson1.name + compatPerson1.year + compatPerson1.month + compatPerson1.day + compatPerson1.hour + compatPerson1.isLunar +
     compatPerson2.name + compatPerson2.year + compatPerson2.month + compatPerson2.day + compatPerson2.hour + compatPerson2.isLunar + compatRelType;
-  const [prevCompatKey, setPrevCompatKey] = useState(compatKey);
-  if (compatKey !== prevCompatKey) {
-    setPrevCompatKey(compatKey);
-    if (compatResult || compatAiText) {
-      setCompatResult(null);
-      setCompatAiText('');
-      setCompatPaywall(false);
-    }
-  }
+  useEffect(() => {
+    resetCompatResult();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compatKey]);
   const [pregResult, setPregResult] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -536,36 +536,6 @@ export default function SajuApp() {
     }
   }
 
-  async function saveAsPdf(title: string) {
-    if (isCapturing) return;
-    setIsCapturing(true);
-    try {
-      const canvas = await captureElement();
-      if (!canvas) { setIsCapturing(false); return; }
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      const { default: jsPDF } = await import('jspdf');
-      const imgW = canvas.width;
-      const imgH = canvas.height;
-      const pdfW = 210; // A4 width in mm
-      const pdfH = (imgH * pdfW) / imgW;
-      const pageH = 297; // A4 height in mm
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      let posY = 0;
-      let page = 0;
-      while (posY < pdfH) {
-        if (page > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, -posY, pdfW, pdfH);
-        posY += pageH;
-        page++;
-      }
-      pdf.save((title || 'saju-result') + '.pdf');
-      alert(lang === 'en' ? 'PDF saved!' : 'PDF가 저장되었어!');
-      setIsCapturing(false);
-    } catch {
-      alert(lang === 'en' ? 'Failed to save PDF' : 'PDF 저장에 실패했어');
-      setIsCapturing(false);
-    }
-  }
 
   async function translateAiText(text: string, targetLang: 'en' | 'ko', setter: (t: string) => void) {
     if (!text || isTranslating) return;
@@ -732,7 +702,15 @@ export default function SajuApp() {
     const prompt = (lang === 'en' ? '🚨 CRITICAL LANGUAGE INSTRUCTION 🚨\nYou MUST write EVERYTHING in English. EVERY sentence, EVERY section title, EVERY explanation — ALL in English.\nDo NOT write Korean sentences. Translate Korean section titles to English.\nExample: Write ##1.What does 2026 mean for my life?## NOT ##1.2026 병오년, 내 인생에서 어떤 해인가?##\nSaju terms like Gap(甲) can appear with English meaning, but ALL text must be English.\nUse warm, casual, friendly tone. IF YOU WRITE IN KOREAN, THE RESPONSE WILL BE REJECTED.\n\n' : '') +
       '너는 적천수와 자평진전을 섭렵한 40년 경력의 명리학 대가야. 반말만 써. 존댓말 금지.\n\n' +
       '【분석 대상 - 전체 사주 원국】\n' +
-      '이름: ' + (userData.name || '익명') + ' / 성별: ' + (userData.gender === 'm' ? '남' : '여') + '\n' +
+      '이름: ' + (userData.name || '익명') + ' / 성별: ' + (userData.gender === 'm' ? '남' : '여') + ' / 나이: 만 ' + (2026 - userData.year) + '세\n' +
+      '⚠️ 나이 맞춤 해석: ' +
+      ((2026 - userData.year) <= 19 ? '10대이므로 학업/시험/진로/교우관계에 비중을 크게 두고, 결혼/부동산/투자는 "먼 미래에~" 정도로만.' :
+       (2026 - userData.year) <= 29 ? '20대이므로 취업/커리어/연애/자기계발에 비중을 두고, 결혼은 가능성으로, 자녀/노후는 가볍게만.' :
+       (2026 - userData.year) <= 39 ? '30대이므로 커리어 성장/결혼생활/재테크/내집마련/자녀계획에 맞는 현실적 조언을.' :
+       (2026 - userData.year) <= 49 ? '40대이므로 커리어 전성기/자녀교육/건강관리/재산관리에 비중을 둬.' :
+       (2026 - userData.year) <= 59 ? '50대이므로 인생 2막/건강/은퇴준비/자녀독립에 초점.' :
+       '60대 이상이므로 건강/노후생활/가족관계/취미에 초점. 취업/수능 등 젊은 시절 이야기는 안 해.') +
+      ' 나이와 동떨어진 조언은 절대 금지!\n\n' +
       '생년월일: ' + userData.year + '년 ' + userData.month + '월 ' + userData.day + '일 (' + (isLunar ? '음력 입력 -> 양력 변환됨' : '양력') + ')\n' +
       (useExactTime && exactHour >= 0 ? '정확한 출생시간: ' + String(exactHour).padStart(2, '0') + '시 ' + String(exactMinute).padStart(2, '0') + '분 (' + TIMES[exactTimeToSiju(exactHour, exactMinute)].hangul.replace(/[()]/g, '') + ' 해당)\n' : '') +
       '일간(Day Master): ' + CG[ds] + ' ' + CG_HANJA[ds] + ' (' + OH_CG[ds] + ') - ' + profile.short + '\n' +
@@ -919,8 +897,7 @@ export default function SajuApp() {
               background: 'linear-gradient(135deg, rgba(240,199,94,0.12), rgba(255,208,128,0.08))',
               color: '#F0C75E', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              fontFamily: 'inherit', backdropFilter: 'blur(8px)',
-              boxShadow: '0 2px 12px rgba(240,199,94,0.15)'
+              fontFamily: 'inherit',               boxShadow: '0 2px 12px rgba(240,199,94,0.15)'
             }} onClick={() => setShowSavedResults(!showSavedResults)}>
               <span>📂</span> {t('prevResults', lang)} <span style={{ background: 'rgba(240,199,94,0.2)', borderRadius: '10px', padding: '2px 10px', fontSize: '13px', fontWeight: 800, color: '#FFD080' }}>{savedResults.length}</span>
             </button>
@@ -1779,13 +1756,6 @@ export default function SajuApp() {
             </button>
           )}
           {aiText && !isGenerating && (
-            <button className="btn" style={{ flex: 1, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--text)', fontSize: '13px' }}
-              disabled={isCapturing}
-              onClick={() => saveAsPdf((userData.name || '') + (lang === 'en' ? "'s Saju Reading" : '의 사주 해설'))}>
-              {isCapturing ? (lang === 'en' ? '📄 Saving...' : '📄 저장 중...') : (lang === 'en' ? '📄 Save PDF' : '📄 PDF 저장')}
-            </button>
-          )}
-          {aiText && !isGenerating && (
             <button className="btn" style={{ flex: 1, background: 'rgba(159,122,234,0.15)', border: '1px solid rgba(159,122,234,0.3)', color: 'var(--text)', fontSize: '13px' }} onClick={() => {
               try {
                 const results = JSON.parse(localStorage.getItem('saju-saved-results') || '[]');
@@ -1878,6 +1848,10 @@ export default function SajuApp() {
       let mySipsungStr = ''; for (const k in mySipsung) { mySipsungStr += k + ':' + mySipsung[k] + ' '; }
       let cSipsungStr = ''; for (const k in cSipsung) { cSipsungStr += k + ':' + cSipsung[k] + ' '; }
 
+      /* 용신/기신 계산 */
+      const myYs = calcYongsin(mySaju);
+      const cYs = calcYongsin(cSaju);
+
       /* 일지 관계 분석 */
       const yukHapPairs = [[0,1],[2,11],[3,10],[4,9],[5,8],[6,7]];
       let hasYukHap = false;
@@ -1889,7 +1863,19 @@ export default function SajuApp() {
       const exact1Str = compatExact1.use && compatExact1.hour >= 0 ? '정확한 출생시간: ' + String(compatExact1.hour).padStart(2, '0') + '시 ' + String(compatExact1.min).padStart(2, '0') + '분\n' : '';
       const exact2Str = compatExact2.use && compatExact2.hour >= 0 ? '정확한 출생시간: ' + String(compatExact2.hour).padStart(2, '0') + '시 ' + String(compatExact2.min).padStart(2, '0') + '분\n' : '';
 
+      const myAge = 2026 - compatPerson1.year;
+      const partnerAge = 2026 - compatPerson2.year;
+      const agePairNote = '⚠️ 나이 맞춤 해석: ' + myName + ' 만 ' + myAge + '세, ' + cName + ' 만 ' + partnerAge + '세. ' +
+        (myAge <= 19 || partnerAge <= 19 ? '10대가 포함되어 있으므로 성적/결혼/부동산/투자 등 성인 주제는 "먼 미래에~" 정도로만 가볍게 언급하고 학교생활/진로/교우관계에 집중해.' :
+         myAge <= 29 || partnerAge <= 29 ? '20대이므로 연애/자기계발/커리어 시작에 비중을 두고, 결혼은 가능성으로, 자녀/노후는 가볍게만.' :
+         myAge <= 39 || partnerAge <= 39 ? '30대이므로 커리어 성장/결혼(또는 결혼생활)/재테크/자녀계획에 맞는 현실적 조언을.' :
+         myAge <= 49 || partnerAge <= 49 ? '40대이므로 커리어 전성기/자녀교육/부부관계/건강에 비중을 둬.' :
+         myAge <= 59 || partnerAge <= 59 ? '50대이므로 인생 2막/건강/은퇴준비/부부관계재정립에 초점.' :
+         '60대 이상이므로 건강/노후/가족관계에 초점. 취업/수능 등 젊은 시절 이야기는 안 해.') +
+        ' 두 사람의 나이에 동떨어진 조언은 절대 금지!\n\n';
+
       const prompt = (lang === 'en' ? '🚨 CRITICAL LANGUAGE INSTRUCTION 🚨\nYou MUST write EVERYTHING in English. EVERY sentence, EVERY section title, EVERY explanation — ALL in English.\nDo NOT write Korean sentences. Translate Korean section titles to English.\nExample: Write ##1.How to read compatibility## NOT ##1.궁합 읽는 법##\nSaju terms like Gap(甲) can appear with English meaning, but ALL text must be English.\nUse warm, casual, friendly tone. IF YOU WRITE IN KOREAN, THE RESPONSE WILL BE REJECTED.\n\n' : '') +
+        agePairNote +
         '너는 30년 경력 사주 궁합 전문가야. 반말만 써. 존댓말 금지.\n' +
         '궁합 분석 시 반드시 일간 관계(천간합/상생/상극), 일지 관계(육합/삼합/충/형/파/해), 오행 균형 보완성, 용신 궁합, 십성 궁합(재성/관성/식상/인성 구조 비교)을 모두 근거로 활용해.\n' +
         '모든 주장에는 반드시 구체적 사주 근거를 붙여: 어떤 천간/지지/십성이 어떤 관계이기 때문에 그런 결론이 나오는지 명시해.\n\n' +
@@ -1899,18 +1885,30 @@ export default function SajuApp() {
         '년주: ' + CG[mySaju.yStem] + JJ[mySaju.yBranch] + ' 월주: ' + CG[mySaju.mStem] + JJ[mySaju.mBranch] + ' 일주: ' + CG[mySaju.dStem] + JJ[mySaju.dBranch] + (mySaju.hStem>=0?' 시주: '+CG[mySaju.hStem]+JJ[mySaju.hBranch]:'') + '\n' +
         '오행: 목' + myOh['목'] + ' 화' + myOh['화'] + ' 토' + myOh['토'] + ' 금' + myOh['금'] + ' 수' + myOh['수'] + '\n' +
         '십성: ' + mySipsungStr + '\n' +
-        '신살: ' + (myShinsal.length>0?myShinsal.join(','):'없음') + '\n\n' +
+        '신살: ' + (myShinsal.length>0?myShinsal.join(','):'없음') + '\n' +
+        '신강/신약: ' + (myYs.isStrong ? '신강 (' + myYs.strengthPct.toFixed(0) + '%)' : '신약 (' + myYs.strengthPct.toFixed(0) + '%)') + '\n' +
+        '용신: ' + myYs.yongsin + ' (' + myYs.type + ')' + '\n' +
+        '기신: ' + myYs.gisin + '\n\n' +
         '=== ' + cName + '의 사주 원국 ===\n' +
         exact2Str +
         '일간: ' + CG[cSaju.dStem] + '(' + OH_CG[cSaju.dStem] + ') 일지: ' + JJ[cSaju.dBranch] + '(' + OH_JJ[cSaju.dBranch] + ')\n' +
         '년주: ' + CG[cSaju.yStem] + JJ[cSaju.yBranch] + ' 월주: ' + CG[cSaju.mStem] + JJ[cSaju.mBranch] + ' 일주: ' + CG[cSaju.dStem] + JJ[cSaju.dBranch] + (cSaju.hStem>=0?' 시주: '+CG[cSaju.hStem]+JJ[cSaju.hBranch]:'') + '\n' +
         '오행: 목' + cOh['목'] + ' 화' + cOh['화'] + ' 토' + cOh['토'] + ' 금' + cOh['금'] + ' 수' + cOh['수'] + '\n' +
         '십성: ' + cSipsungStr + '\n' +
-        '신살: ' + (cShinsal.length>0?cShinsal.join(','):'없음') + '\n\n' +
+        '신살: ' + (cShinsal.length>0?cShinsal.join(','):'없음') + '\n' +
+        '신강/신약: ' + (cYs.isStrong ? '신강 (' + cYs.strengthPct.toFixed(0) + '%)' : '신약 (' + cYs.strengthPct.toFixed(0) + '%)') + '\n' +
+        '용신: ' + cYs.yongsin + ' (' + cYs.type + ')' + '\n' +
+        '기신: ' + cYs.gisin + '\n\n' +
         '=== 두 사주 관계 분석 데이터 ===\n' +
         '일간 관계: ' + CG[myDS] + '(' + OH_CG[myDS] + ') vs ' + CG[theirDS] + '(' + OH_CG[theirDS] + ')\n' +
         '천간합: ' + (hasHap ? '있음! (' + CG[myDS] + '+' + CG[theirDS] + ')' : '없음') + '\n' +
         '일지 관계: ' + JJ[myDB] + ' vs ' + JJ[cDB] + ' → ' + (hasYukHap?'육합(六合)! 깊은 인연':'') + (hasChung?'충(冲)! 갈등/변화 요소':'') + (!hasYukHap&&!hasChung?'중립':'') + '\n' +
+        '용신 궁합 팩트:\n' +
+        '  ' + myName + ' 용신: ' + myYs.yongsin + ' / 기신: ' + myYs.gisin + '\n' +
+        '  ' + cName + ' 용신: ' + cYs.yongsin + ' / 기신: ' + cYs.gisin + '\n' +
+        '  ' + cName + ' 일간 오행: ' + OH_CG[cSaju.dStem] + (OH_CG[cSaju.dStem] === myYs.yongsin ? ' → ' + myName + '의 용신과 일치!' : ' → ' + myName + '의 용신(' + myYs.yongsin + ')과 불일치') + '\n' +
+        '  ' + myName + ' 일간 오행: ' + OH_CG[mySaju.dStem] + (OH_CG[mySaju.dStem] === cYs.yongsin ? ' → ' + cName + '의 용신과 일치!' : ' → ' + cName + '의 용신(' + cYs.yongsin + ')과 불일치') + '\n' +
+        '  ⚠️ 위 팩트를 정확히 반영하여 용신 궁합을 분석해. 일치하지 않는 경우 "서로의 용신을 가지고 있다"고 거짓 주장하지 마.\n' +
         '오행 보완: ' + myName + '에게 부족한 오행을 ' + cName + '이 가지고 있는지 분석 필요\n' +
         '총점: ' + baseScore + '점\n\n' +
         '=== 중복 금지 규칙 (매우 중요!) ===\n' +
@@ -2485,14 +2483,22 @@ export default function SajuApp() {
               const isStrong1 = ys1.isStrong;
               const isStrong2 = ys2.isStrong;
 
-              // Check if partner has my yongshin
-              const partner2HasYong1 = oh2[yong1] >= 2;
-              const partner1HasYong2 = oh1[yong2] >= 2;
+              // Check if partner has my yongshin — 명리학 기준:
+              // 1순위: 상대 일간 오행이 내 용신과 같은가 (가장 강력한 보완)
+              // 2순위: 상대 월지 오행이 내 용신과 같은가 (득령한 기운)
+              // 3순위: 상대 사주에 용신 오행이 풍부한가 (3개 이상이어야 유의미)
+              const el2DayStem = OH_CG[dm2];
+              const el1DayStem = OH_CG[dm1];
+              const el2MonthBranch = OH_JJ[s2.mBranch];
+              const el1MonthBranch = OH_JJ[s1.mBranch];
+              const partner2HasYong1 = el2DayStem === yong1 || (el2MonthBranch === yong1 && oh2[yong1] >= 2);
+              const partner1HasYong2 = el1DayStem === yong2 || (el1MonthBranch === yong2 && oh1[yong2] >= 2);
               let yongDesc = '';
               if (partner2HasYong1 && partner1HasYong2) yongDesc = lang === 'en' ? 'Both have each other\'s yongsin! Perfect complementary match' : '서로의 용신을 가지고 있어! 최고의 보완 궁합';
-              else if (partner2HasYong1) yongDesc = lang === 'en' ? data.cName + ' has the energy ' + data.myName + ' needs (' + yong1 + ')' : data.cName + '이(가) ' + data.myName + '에게 필요한 기운(' + yong1 + ')을 가지고 있어';
-              else if (partner1HasYong2) yongDesc = lang === 'en' ? data.myName + ' has the energy ' + data.cName + ' needs (' + yong2 + ')' : data.myName + '이(가) ' + data.cName + '에게 필요한 기운(' + yong2 + ')을 가지고 있어';
-              else yongDesc = lang === 'en' ? 'Different yongsin, but a relationship that can grow together' : '서로의 용신이 다르지만, 함께 성장하며 채워갈 수 있는 관계';
+              else if (partner2HasYong1) yongDesc = lang === 'en' ? data.cName + '\'s day master (' + el2DayStem + ') is the energy ' + data.myName + ' needs' : data.cName + '의 일간(' + el2DayStem + ')이 ' + data.myName + '에게 필요한 용신 기운이야';
+              else if (partner1HasYong2) yongDesc = lang === 'en' ? data.myName + '\'s day master (' + el1DayStem + ') is the energy ' + data.cName + ' needs' : data.myName + '의 일간(' + el1DayStem + ')이 ' + data.cName + '에게 필요한 용신 기운이야';
+              else if (oh2[yong1] >= 2 || oh1[yong2] >= 2) yongDesc = lang === 'en' ? 'Some complementary energy exists, but not in key positions' : '보완 기운이 있지만 핵심 위치(일간/월지)에는 없어. 함께 노력하면 채울 수 있는 관계';
+              else yongDesc = lang === 'en' ? 'Different yongsin — a relationship where both grow by seeking balance together' : '서로의 용신이 다른 구조야. 함께 부족한 기운을 채워가며 성장하는 관계';
 
               const ohIconMap: Record<string, string> = {'목':'🌲','화':'☀️','토':'⛰️','금':'⚔️','수':'💧'};
 
@@ -2588,11 +2594,6 @@ export default function SajuApp() {
                   disabled={isCapturing}
                   onClick={() => shareResult(compatAiText, (userData.name || '') + ' & ' + (compatPerson2.name || '') + (lang === 'en' ? "'s Compatibility" : '의 궁합'))}>
                   {isCapturing ? (lang === 'en' ? '📸 Capturing...' : '📸 캡처 중...') : (lang === 'en' ? '📸 Share Image' : '📸 이미지 공유')}
-                </button>
-                <button className="btn" style={{ width: '100%', marginTop: '8px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--text)', fontSize: '13px', padding: '10px' }}
-                  disabled={isCapturing}
-                  onClick={() => saveAsPdf((userData.name || '') + ' & ' + (compatPerson2.name || '') + (lang === 'en' ? "'s Compatibility" : '의 궁합'))}>
-                  {isCapturing ? (lang === 'en' ? '📄 Saving...' : '📄 저장 중...') : (lang === 'en' ? '📄 Save PDF' : '📄 PDF 저장')}
                 </button>
                 <button className="btn" style={{ width: '100%', marginTop: '8px', background: 'rgba(159,122,234,0.15)', border: '1px solid rgba(159,122,234,0.3)', color: 'var(--text)', fontSize: '13px', padding: '10px' }} onClick={() => {
                   try {
@@ -3071,13 +3072,6 @@ export default function SajuApp() {
             </button>
           )}
           {aiText && !isGenerating && (
-            <button className="btn" style={{ flex: 1, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--text)', fontSize: '13px' }}
-              disabled={isCapturing}
-              onClick={() => saveAsPdf((userData.name || '') + (lang === 'en' ? "'s Saju Reading" : '의 사주 해설'))}>
-              {isCapturing ? (lang === 'en' ? '📄 Saving...' : '📄 저장 중...') : (lang === 'en' ? '📄 Save PDF' : '📄 PDF 저장')}
-            </button>
-          )}
-          {aiText && !isGenerating && (
             <button className="btn" style={{ flex: 1, background: 'rgba(159,122,234,0.15)', border: '1px solid rgba(159,122,234,0.3)', color: 'var(--text)', fontSize: '13px' }} onClick={() => {
               try {
                 const results = JSON.parse(localStorage.getItem('saju-saved-results') || '[]');
@@ -3442,7 +3436,7 @@ export default function SajuApp() {
 
           <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
             <div style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>&#9200;</span> {t('specialEnds', lang)} {timerText}
+              <span>&#9200;</span> {t('specialEnds', lang)} <CountdownTimer />
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
               {t('todayVisitor', lang)} {visitorCount.toLocaleString()} {t('alreadyChecked', lang)}
@@ -3678,8 +3672,7 @@ export default function SajuApp() {
             background: 'linear-gradient(135deg, rgba(240,199,94,0.25), rgba(255,208,128,0.15))',
             border: '1px solid rgba(240,199,94,0.4)',
             borderRadius: '20px', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
-            color: '#F0C75E', cursor: 'pointer', backdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px'
+            color: '#F0C75E', cursor: 'pointer',             display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px'
           }}
         >
           <span>⭐</span>
@@ -3712,8 +3705,7 @@ export default function SajuApp() {
       {hasMounted && !storageConsent && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(10,14,42,0.95)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(10,14,42,0.95)',           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '20px',
         }}>
           <div style={{

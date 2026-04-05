@@ -129,7 +129,7 @@ export function buildSajuPrompts(sj: SajuResult, ohCount: Record<string, number>
   const ori = ohRel[dayOh] || {};
   prompt += '=== 참고 데이터 ===\n';
   prompt += '일간 ' + dayOh + ': ' + dayOh + '->생->' + (ori['생']||'') + ', ' + dayOh + '->극->' + (ori['극']||'') + ', ' + (ori['원']||'') + '->생->' + dayOh + ', ' + (ori['피']||'') + '->극->' + dayOh + '\n';
-  prompt += '2026=병오(화/화) 2027=정미(화/토) 2028=무신(토/토)\n';
+  prompt += '2026=병오(화/화) 2027=정미(화/토) 2028=무신(토/금)\n';
   prompt += '\n=== 월운 분석 구조 (월별 운세에 반드시 적용!) ===\n';
   prompt += '월별 운세 = 사주 원국(고정) + 대운(10년) + 세운(그 해) + 월운(그 달)을 겹쳐서 봄\n';
   prompt += '핵심: 내 일간과 그 달의 천간/지지 관계를 분석\n';

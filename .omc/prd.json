@@ -1,9 +1,57 @@
 {
-  "title": "TDD - Comprehensive Test Suite for Saju App",
+  "title": "Fix iPhone Safari typing performance lag",
   "stories": [
-    { "id": "US-001", "title": "saju-calc.ts unit tests", "priority": 1, "passes": true },
-    { "id": "US-002", "title": "lunar-solar, i18n, ref-selector tests", "priority": 2, "passes": true },
-    { "id": "US-003", "title": "saju-prompt-builder tests", "priority": 3, "passes": true },
-    { "id": "US-004", "title": "Sanity checks + build", "priority": 4, "passes": true }
+    {
+      "id": "US-001",
+      "title": "Memoize StarsBackground to prevent re-render on keystroke",
+      "acceptanceCriteria": [
+        "StarsBackground is wrapped in React.memo",
+        "Typing in name input does NOT re-render 65 star SVG elements",
+        "Build passes with no TypeScript errors"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-002",
+      "title": "Extract countdown timer to prevent 1s interval full re-renders",
+      "acceptanceCriteria": [
+        "Timer state and setInterval are in a separate React.memo component",
+        "Timer ticking does not trigger SajuApp re-render",
+        "Timer still displays correctly on loading screens",
+        "Build passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-003",
+      "title": "Fix Safari backdrop-filter performance",
+      "acceptanceCriteria": [
+        "backdrop-filter: blur() replaced with solid backgrounds on always-visible elements (.card, nav buttons)",
+        "Visual appearance remains acceptable (dark semi-transparent)",
+        "Build passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-004",
+      "title": "Fix render-time setState causing double renders",
+      "acceptanceCriteria": [
+        "compatKey comparison moved from render body to useEffect",
+        "No setState calls during render phase",
+        "Build passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-005",
+      "title": "Verify all fixes, test, build, deploy",
+      "acceptanceCriteria": [
+        "npm test passes (all 90 tests)",
+        "npm run build succeeds",
+        "No TypeScript errors",
+        "All previous fixes are intact"
+      ],
+      "passes": true
+    }
   ]
 }

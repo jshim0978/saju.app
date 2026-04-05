@@ -87,8 +87,7 @@ body::before {
 
 /* Cards - glassmorphism */
 .card {
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(16px);
+  background: rgba(14,18,50,0.88);
   border: 1px solid rgba(240,199,94,0.08);
   border-radius: var(--radius);
   padding: 24px;
@@ -682,7 +681,6 @@ input:focus, select:focus {
   transition: all 0.25s;
   box-shadow: 0 4px 16px rgba(240,199,94,0.25);
   z-index: 100;
-  backdrop-filter: blur(12px);
   white-space: nowrap;
 }
 .back-btn:hover {

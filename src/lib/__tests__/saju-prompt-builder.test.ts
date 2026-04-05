@@ -37,10 +37,11 @@ describe('buildSajuPrompts', () => {
     const r = buildSajuPrompts(sj,oh,mkUser());
     expect(r[1]).toContain('##11.'); expect(r[1]).toContain('##12.');
   });
-  test('married shorter than unmarried', () => {
+  test('married has spouse section, unmarried has love section', () => {
     const m = buildSajuPrompts(sj,oh,mkUser({relationship:3}));
     const u = buildSajuPrompts(sj,oh,mkUser({relationship:0}));
-    expect(m[0].length).toBeLessThan(u[0].length);
+    expect(m[0]).toContain('부부 관계');
+    expect(u[0]).toContain('연애 & 인연의 지도');
   });
   test('includes user name', () => {
     const r = buildSajuPrompts(sj,oh,mkUser({name:'Alice'}));

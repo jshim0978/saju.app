@@ -149,13 +149,15 @@ export function calcShinsal(sj: SajuResult): string[] {
   const db = sj.dBranch;
   const branches = [sj.yBranch, sj.mBranch, sj.hBranch >= 0 ? sj.hBranch : -1];
 
-  const dohwaMap: Record<number, number> = {0:9,1:10,2:3,3:0,4:3,5:0,6:9,7:6,8:9,9:0,10:3,11:0};
+  // 삼합 기반 도화살: 인오술->묘(3), 사유축->오(6), 신자진->유(9), 해묘미->자(0)
+  const dohwaMap: Record<number, number> = {0:9,1:6,2:3,3:0,4:9,5:6,6:3,7:0,8:9,9:6,10:3,11:0};
   const dohwaTarget = dohwaMap[db];
   for (let i = 0; i < branches.length; i++) {
     if (branches[i] === dohwaTarget) { sals.push('도화살'); break; }
   }
 
-  const yukmaMap: Record<number, number> = {0:6,1:7,2:8,3:9,4:10,5:11,6:0,7:1,8:2,9:3,10:4,11:5};
+  // 삼합 기반 역마살: 인오술->신(8), 사유축->해(11), 신자진->인(2), 해묘미->사(5)
+  const yukmaMap: Record<number, number> = {0:2,1:11,2:8,3:5,4:2,5:11,6:8,7:5,8:2,9:11,10:8,11:5};
   const yukmaTarget = yukmaMap[db];
   for (let j = 0; j < branches.length; j++) {
     if (branches[j] === yukmaTarget) { sals.push('역마살'); break; }
@@ -167,7 +169,8 @@ export function calcShinsal(sj: SajuResult): string[] {
     if (branches[k] === hwagaeTarget) { sals.push('화개살'); break; }
   }
 
-  const hongMap: Record<number, number> = {0:3,1:8,2:1,3:6,4:3,5:8,6:1,7:6,8:3,9:8};
+  // 홍염살 (일간 기준): 갑->오(6), 을->신(8), 병->인(2), 정->미(7), 무->진(4), 기->진(4), 경->술(10), 신->유(9), 임->자(0), 계->신(8)
+  const hongMap: Record<number, number> = {0:6,1:8,2:2,3:7,4:4,5:4,6:10,7:9,8:0,9:8};
   const hongTarget = hongMap[sj.dStem];
   for (let l = 0; l < branches.length; l++) {
     if (branches[l] === hongTarget) { sals.push('홍염살'); break; }
